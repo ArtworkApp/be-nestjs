@@ -1,99 +1,348 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🎨 Artwork Marketplace API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A comprehensive NestJS-based REST API for an artwork resale marketplace platform. This API provides authentication, user management, artwork listings, and comprehensive search functionality.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## ✨ Features
 
-## Description
+- **🔐 Authentication & Authorization**: JWT-based auth with email verification
+- **👥 User Management**: Profile management, reputation system, dashboard
+- **🖼️ Artwork Management**: CRUD operations, image upload, categorization
+- **🔍 Search & Discovery**: Advanced search with filters, featured listings
+- **📚 API Documentation**: Interactive Swagger/OpenAPI documentation
+- **🧪 Comprehensive Testing**: Unit tests with property-based testing
+- **🛡️ Security**: Helmet, CORS, rate limiting, input validation
+- **📊 Monitoring**: Health checks, logging with Winston
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Quick Start
 
-## Project setup
+### Option 1: Demo Mode (No External Dependencies)
+
+The fastest way to try the API:
 
 ```bash
-$ npm install
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Start in demo mode
+node demo-start.js
 ```
 
-## Compile and run the project
+This will start the API at `http://localhost:3000` with:
+- 📚 **Swagger Documentation**: http://localhost:3000/api/v1/docs
+- 🌐 **API Base URL**: http://localhost:3000/api/v1
+
+### Option 2: Full Development Setup
+
+For full functionality with PostgreSQL and Redis:
 
 ```bash
-# development
-$ npm run start
+# 1. Start database services (requires Docker)
+docker-compose up -d
 
-# watch mode
-$ npm run start:dev
+# 2. Install dependencies
+npm install --legacy-peer-deps
 
-# production mode
-$ npm run start:prod
+# 3. Start the application
+npm run start:dev
+
+# Or use the convenience script
+./start-dev.sh    # Linux/Mac
+start-dev.bat     # Windows
 ```
 
-## Run tests
+## 📖 API Documentation
+
+Once running, visit the interactive Swagger documentation:
+
+**🔗 http://localhost:3000/api/v1/docs**
+
+The documentation includes:
+- All available endpoints with examples
+- Request/response schemas
+- Authentication examples
+- Try-it-out functionality
+- Model definitions
+
+## 🔑 API Endpoints Overview
+
+### Authentication (`/api/v1/auth`)
+- `POST /register` - Register new user
+- `POST /login` - User login
+- `GET /verify-email/:token` - Verify email
+- `POST /request-password-reset` - Request password reset
+- `POST /reset-password` - Reset password
+- `POST /change-password` - Change password (auth required)
+- `POST /refresh` - Refresh JWT token
+- `GET /profile` - Get current user profile
+
+### Users (`/api/v1/users`)
+- `GET /me/dashboard` - User dashboard with stats
+- `GET /me/stats` - User statistics
+- `PUT /me/profile` - Update profile
+- `PUT /me/profile-image` - Upload profile image
+- `GET /search` - Search users
+- `GET /:id` - Get user profile by ID
+- `GET /username/:username` - Get user by username
+
+### Artworks (`/api/v1/artworks`)
+- `POST /` - Create artwork listing
+- `GET /search` - Search artworks with filters
+- `GET /featured` - Get featured artworks
+- `GET /recent` - Get recent artworks
+- `GET /categories/:category` - Get by category
+- `GET /categories/stats` - Category statistics
+- `GET /seller/:sellerId` - Get seller's artworks
+- `GET /:id` - Get artwork details
+- `PUT /:id` - Update artwork
+- `DELETE /:id` - Delete artwork
+- `PUT /:id/status/:status` - Update status
+
+## 🧪 Testing the API
+
+### 1. Register a User
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "artist@example.com",
+    "username": "artist123",
+    "password": "SecurePass123!",
+    "firstName": "Jane",
+    "lastName": "Artist"
+  }'
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 2. Login
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emailOrUsername": "artist@example.com",
+    "password": "SecurePass123!"
+  }'
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Save the `accessToken` from the response.
 
-## Resources
+### 3. Create an Artwork
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+curl -X POST http://localhost:3000/api/v1/artworks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "title": "Sunset Over Mountains",
+    "description": "A beautiful landscape painting capturing the golden hour",
+    "price": 450.00,
+    "currency": "USD",
+    "category": "PAINTING",
+    "medium": "Oil on canvas",
+    "dimensions": "30\" x 40\"",
+    "year": 2023,
+    "images": ["https://example.com/artwork1.jpg"],
+    "tags": ["landscape", "sunset", "mountains"]
+  }'
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 4. Search Artworks
 
-## Support
+```bash
+curl "http://localhost:3000/api/v1/artworks/search?q=landscape&category=PAINTING&minPrice=100&maxPrice=1000"
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 🛠️ Development
 
-## Stay in touch
+### Available Scripts
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+# Development
+npm run start:dev      # Start with hot reload
+npm run start:debug    # Start with debugging
 
-## License
+# Building
+npm run build          # Build the application
+npm run start:prod     # Start production build
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# Testing
+npm run test           # Run unit tests
+npm run test:watch     # Run tests in watch mode
+npm run test:cov       # Run tests with coverage
+npm run test:e2e       # Run end-to-end tests
+
+# Code Quality
+npm run lint           # Run ESLint
+npm run format         # Format code with Prettier
+```
+
+### Project Structure
+
+```
+src/
+├── auth/              # Authentication module
+├── users/             # User management module
+├── artworks/          # Artwork management module
+├── common/            # Shared utilities and enums
+├── config/            # Configuration files
+└── main.ts           # Application entry point
+```
+
+## 🧪 Testing
+
+The project includes comprehensive testing:
+
+- **Unit Tests**: 101+ tests covering all services and controllers
+- **Property-Based Testing**: Using fast-check for robust validation
+- **Integration Tests**: End-to-end API testing
+- **Test Coverage**: Detailed coverage reports
+
+```bash
+# Run all tests
+npm run test
+
+# Run with coverage
+npm run test:cov
+
+# Run specific test file
+npm run test -- auth.service.spec.ts
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Key configuration options in `.env`:
+
+```env
+# Application
+PORT=3000
+NODE_ENV=development
+API_PREFIX=api/v1
+
+# Database (PostgreSQL)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=artwork_user
+DATABASE_PASSWORD=artwork_password
+DATABASE_NAME=artwork_marketplace
+
+# JWT Authentication
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=7d
+
+# Optional Services
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+### Database Setup
+
+#### Using Docker (Recommended)
+
+```bash
+# Start PostgreSQL and Redis
+docker-compose up -d
+
+# Check status
+docker-compose ps
+```
+
+#### Manual Setup
+
+1. Install PostgreSQL
+2. Create database and user:
+
+```sql
+CREATE DATABASE artwork_marketplace;
+CREATE USER artwork_user WITH PASSWORD 'artwork_password';
+GRANT ALL PRIVILEGES ON DATABASE artwork_marketplace TO artwork_user;
+```
+
+## 🚀 Production Deployment
+
+### Build for Production
+
+```bash
+# Build the application
+npm run build
+
+# Start production server
+npm run start:prod
+```
+
+### Environment Setup
+
+1. Set `NODE_ENV=production`
+2. Configure secure JWT secret
+3. Set up production database
+4. Configure external services (Redis, S3, etc.)
+5. Set up reverse proxy (nginx)
+6. Configure SSL/TLS
+
+### Docker Deployment
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist ./dist
+EXPOSE 3000
+CMD ["node", "dist/main"]
+```
+
+## 📊 API Features
+
+### Authentication & Security
+- JWT-based authentication
+- Email verification
+- Password reset functionality
+- Rate limiting
+- Input validation
+- CORS protection
+- Helmet security headers
+
+### User Management
+- User profiles with reputation system
+- Dashboard with statistics
+- Profile image upload
+- Account management
+
+### Artwork Management
+- CRUD operations for artwork listings
+- Image upload and management
+- Category-based organization
+- Status management (active, sold, inactive)
+- View tracking
+
+### Search & Discovery
+- Advanced search with multiple filters
+- Category-based browsing
+- Featured artwork system
+- Recent listings
+- Seller-specific listings
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite
+6. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+- 📖 Check the [API Documentation](http://localhost:3000/api/v1/docs)
+- 🐛 Report issues on GitHub
+- 💬 Join our community discussions
+
+---
+
+**Happy coding! 🎨✨**

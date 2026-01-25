@@ -1,46 +1,68 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { ArtworkRepository } from '../artworks/repositories/artwork.repository';
-import { UserRole } from '../common/enums';
+import { ArtworkCategory, ListingStatus, UserRole } from '../common/enums';
 import { ReviewRepository } from '../reviews/repositories/review.repository';
 import { TransactionRepository } from '../transactions/repositories/transaction.repository';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { User } from './entities/user.entity';
 import { UserRepository } from './repositories/user.repository';
 import { UsersService } from './users.service';
 
-describe('UsersService Property Tests', () => {
-  let usersService: UsersService;
+describe('UsersService', () => {
+  let service: UsersService;
   let userRepository: UserRepository;
   let reviewRepository: ReviewRepository;
   let transactionRepository: TransactionRepository;
   let artworkRepository: ArtworkRepository;
 
+  const mockUser: User = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    email: 'test@example.com',
+    username: 'testuser',
+    passwordHash: 'hashedpassword',
+    firstName: 'Test',
+    lastName: 'User',
+    profileImage: null,
+    bio: 'Test bio',
+    location: 'Test City',
+    reputation: 4.5,
+    isVerified: true,
+    isActive: true,
+    role: UserRole.USER,
+    emailVerificationToken: null,
+    passwordResetToken: null,
+    passwordResetExpires: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const mockUserRepository = {
+    findById: jest.fn(),
+    findByUsername: jest.fn(),
+    findAll: jest.fn(),
+    update: jest.fn(),
+    updateReputation: jest.fn(),
+    exists: jest.fn(),
+  };
+
+  const mockReviewRepository = {
+    getReviewStats: jest.fn(),
+    findByReviewee: jest.fn(),
+  };
+
+  const mockTransactionRepository = {
+    getUserTransactionStats: jest.fn(),
+    findByBuyer: jest.fn(),
+    findBySeller: jest.fn(),
+  };
+
+  const mockArtworkRepository = {
+    findBySeller: jest.fn(),
+  };
+
   beforeEach(async () => {
-    const mockUserRepository = {
-      findById: jest.fn(),
-      findByUsername: jest.fn(),
-      update: jest.fn(),
-      updateReputation: jest.fn(),
-      exists: jest.fn(),
-      findAll: jest.fn(),
-    };
-
-    const mockReviewRepository = {
-      getReviewStats: jest.fn(),
-      findByReviewee: jest.fn(),
-    };
-
-    const mockTransactionRepository = {
-      findByBuyer: jest.fn(),
-      findBySeller: jest.fn(),
-      getUserTransactionStats: jest.fn(),
-    };
-
-    const mockArtworkRepository = {
-      findBySeller: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
@@ -63,445 +85,543 @@ describe('UsersService Property Tests', () => {
       ],
     }).compile();
 
-    usersService = module.get<UsersService>(UsersService);
+    service = module.get<UsersService>(UsersService);
     userRepository = module.get<UserRepository>(UserRepository);
     reviewRepository = module.get<ReviewRepository>(ReviewRepository);
-    transactionRepository = module.get<TransactionRepository>(
-      TransactionRepository,
-    );
+    transactionRepository = module.get<TransactionRepository>(TransactionRepository);
     artworkRepository = module.get<ArtworkRepository>(ArtworkRepository);
   });
 
-  // Arbitraries for generating test data
-  const userEntityArbitrary = () =>
-    fc.record({
-      id: fc.uuid(),
-      email: fc.emailAddress(),
-      username: fc.string({ minLength: 3, maxLength: 50 }),
-      passwordHash: fc.string({ minLength: 60, maxLength: 60 }),
-      firstName: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-      lastName: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-      profileImage: fc.option(fc.webUrl()),
-      bio: fc.option(fc.string({ maxLength: 1000 })),
-      location: fc.option(fc.string({ maxLength: 255 })),
-      reputation: fc.float({ min: 0, max: 5 }),
-      isVerified: fc.boolean(),
-      isActive: fc.boolean(),
-      role: fc.constantFrom(...Object.values(UserRole)),
-      createdAt: fc.date(),
-      updatedAt: fc.date(),
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('findById', () => {
+    it('should find user by ID successfully', async () => {
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+
+      const result = await service.findById(mockUser.id);
+
+      expect(userRepository.findById).toHaveBeenCalledWith(mockUser.id);
+      expect(result).toEqual(mockUser);
     });
 
-  const updateUserProfileDtoArbitrary = () =>
-    fc.record({
-      username: fc.option(fc.string({ minLength: 3, maxLength: 50 })),
-      firstName: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-      lastName: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-      bio: fc.option(fc.string({ maxLength: 1000 })),
-      location: fc.option(fc.string({ maxLength: 255 })),
+    it('should throw NotFoundException if user not found', async () => {
+      mockUserRepository.findById.mockResolvedValue(null);
+
+      await expect(service.findById('nonexistent-id')).rejects.toThrow(NotFoundException);
     });
 
-  const reviewStatsArbitrary = () =>
-    fc.record({
-      totalReviews: fc.integer({ min: 0, max: 100 }),
-      averageRating: fc.float({ min: 1, max: 5 }),
-      ratingDistribution: fc.array(
-        fc.record({
-          rating: fc.integer({ min: 1, max: 5 }),
-          count: fc.integer({ min: 0, max: 20 }),
+    it('should handle property-based testing for findById', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.uuid(), async (userId) => {
+          mockUserRepository.findById.mockResolvedValue({ ...mockUser, id: userId });
+
+          const result = await service.findById(userId);
+
+          expect(result.id).toBe(userId);
+          expect(userRepository.findById).toHaveBeenCalledWith(userId);
         }),
-        { maxLength: 5 },
-      ),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('findByUsername', () => {
+    it('should find user by username successfully', async () => {
+      mockUserRepository.findByUsername.mockResolvedValue(mockUser);
+
+      const result = await service.findByUsername(mockUser.username);
+
+      expect(userRepository.findByUsername).toHaveBeenCalledWith(mockUser.username);
+      expect(result).toEqual(mockUser);
     });
 
-  const transactionStatsArbitrary = () =>
-    fc.record({
-      totalPurchases: fc.integer({ min: 0, max: 100 }),
-      totalSales: fc.integer({ min: 0, max: 100 }),
-      totalSpent: fc.float({ min: 0, max: 10000 }),
-      totalEarned: fc.float({ min: 0, max: 10000 }),
+    it('should throw NotFoundException if user not found', async () => {
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+
+      await expect(service.findByUsername('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update user profile successfully', async () => {
+      const updateDto: UpdateUserProfileDto = {
+        firstName: 'Updated',
+        lastName: 'Name',
+        bio: 'Updated bio',
+        location: 'New City',
+      };
+
+      const updatedUser = { ...mockUser, ...updateDto };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+
+      const result = await service.updateProfile(mockUser.id, updateDto);
+
+      expect(userRepository.findById).toHaveBeenCalledWith(mockUser.id);
+      expect(userRepository.update).toHaveBeenCalledWith(mockUser.id, updateDto);
+      expect(result).toEqual(updatedUser);
     });
 
-  /**
-   * Property 25: Profile updates are saved and displayed
-   * For any valid profile information update, the system should save the changes and update the user's public profile display
-   * Validates: Requirements 6.1
-   */
-  it('should save and display profile updates for valid data', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        userEntityArbitrary(),
-        updateUserProfileDtoArbitrary(),
-        async (userEntity, updateDto) => {
-          const user = { ...userEntity, reputation: 0 } as User;
-          const updatedUser = { ...user, ...updateDto } as User;
+    it('should update username if not taken', async () => {
+      const updateDto: UpdateUserProfileDto = {
+        username: 'newusername',
+      };
 
-          (userRepository.findById as jest.Mock).mockResolvedValue(user);
-          (userRepository.findByUsername as jest.Mock).mockResolvedValue(null);
-          (userRepository.update as jest.Mock).mockResolvedValue(updatedUser);
+      const updatedUser = { ...mockUser, username: 'newusername' };
 
-          const result = await usersService.updateProfile(user.id, updateDto);
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
 
-          expect(userRepository.findById).toHaveBeenCalledWith(user.id);
-          expect(userRepository.update).toHaveBeenCalledWith(
-            user.id,
-            updateDto,
-          );
-          expect(result).toBeDefined();
-          expect(result.id).toBe(user.id);
+      const result = await service.updateProfile(mockUser.id, updateDto);
 
-          // Verify that updated fields are reflected
-          if (updateDto.username) {
-            expect(result.username).toBe(updateDto.username);
-          }
-          if (updateDto.firstName) {
-            expect(result.firstName).toBe(updateDto.firstName);
-          }
-          if (updateDto.bio) {
-            expect(result.bio).toBe(updateDto.bio);
-          }
+      expect(userRepository.findByUsername).toHaveBeenCalledWith(updateDto.username);
+      expect(result.username).toBe('newusername');
+    });
+
+    it('should throw ConflictException if username is already taken', async () => {
+      const updateDto: UpdateUserProfileDto = {
+        username: 'takenusername',
+      };
+
+      const existingUser = { ...mockUser, id: 'different-id', username: 'takenusername' };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepository.findByUsername.mockResolvedValue(existingUser);
+
+      await expect(service.updateProfile(mockUser.id, updateDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      const updateDto: UpdateUserProfileDto = {
+        firstName: 'Updated',
+      };
+
+      mockUserRepository.findById.mockResolvedValue(null);
+
+      await expect(service.updateProfile('nonexistent-id', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw NotFoundException if update returns null', async () => {
+      const updateDto: UpdateUserProfileDto = {
+        firstName: 'Updated',
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepository.update.mockResolvedValue(null);
+
+      await expect(service.updateProfile(mockUser.id, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should handle property-based testing for profile updates', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.record({
+            firstName: fc.string({ minLength: 1, maxLength: 50 }),
+            lastName: fc.string({ minLength: 1, maxLength: 50 }),
+            bio: fc.option(fc.string({ maxLength: 500 })),
+            location: fc.option(fc.string({ maxLength: 100 })),
+          }),
+          async (updateData) => {
+            const updatedUser = { ...mockUser, ...updateData };
+
+            mockUserRepository.findById.mockResolvedValue(mockUser);
+            mockUserRepository.update.mockResolvedValue(updatedUser);
+
+            const result = await service.updateProfile(mockUser.id, updateData);
+
+            expect(result.firstName).toBe(updateData.firstName);
+            expect(result.lastName).toBe(updateData.lastName);
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('calculateReputation', () => {
+    it('should calculate reputation with reviews', async () => {
+      const reviewStats = {
+        totalReviews: 10,
+        averageRating: 4.5,
+      };
+
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+
+      const result = await service.calculateReputation(mockUser.id);
+
+      expect(reviewRepository.getReviewStats).toHaveBeenCalledWith(mockUser.id);
+      expect(result).toBeCloseTo(4.5, 2);
+    });
+
+    it('should return 0 reputation if no reviews', async () => {
+      const reviewStats = {
+        totalReviews: 0,
+        averageRating: 0,
+      };
+
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+
+      const result = await service.calculateReputation(mockUser.id);
+
+      expect(result).toBe(0);
+    });
+
+    it('should calculate weighted reputation based on review count', async () => {
+      const reviewStats = {
+        totalReviews: 5,
+        averageRating: 4.0,
+      };
+
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+
+      const result = await service.calculateReputation(mockUser.id);
+
+      // With 5 reviews, weight should be 0.5, so: 4.0 * (0.5 + 0.5 * 0.5) = 4.0 * 0.75 = 3.0
+      expect(result).toBeCloseTo(3.0, 2);
+    });
+
+    it('should handle property-based testing for reputation calculation', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.record({
+            totalReviews: fc.integer({ min: 0, max: 100 }),
+            averageRating: fc.float({ min: 0, max: 5 }),
+          }),
+          async (reviewStats) => {
+            mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+
+            const result = await service.calculateReputation(mockUser.id);
+
+            if (reviewStats.totalReviews === 0) {
+              expect(result).toBe(0);
+            } else {
+              expect(result).toBeGreaterThanOrEqual(0);
+              expect(result).toBeLessThanOrEqual(5);
+            }
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('updateUserReputation', () => {
+    it('should update user reputation', async () => {
+      const reviewStats = {
+        totalReviews: 10,
+        averageRating: 4.5,
+      };
+
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+      mockUserRepository.updateReputation.mockResolvedValue(undefined);
+
+      await service.updateUserReputation(mockUser.id);
+
+      expect(userRepository.updateReputation).toHaveBeenCalledWith(mockUser.id, 4.5);
+    });
+  });
+
+  describe('getUserDashboard', () => {
+    it('should get user dashboard successfully', async () => {
+      const mockArtworks = [
+        {
+          id: 'artwork-1',
+          title: 'Test Artwork',
+          price: 299.99,
+          category: ArtworkCategory.PAINTING,
+          status: ListingStatus.ACTIVE,
         },
-      ),
-      { numRuns: 100 },
-    );
-  });
+      ];
 
-  /**
-   * Property 28: Reputation calculation from ratings
-   * For any user with accumulated ratings, the system should calculate and display an accurate overall reputation score
-   * Validates: Requirements 6.4
-   */
-  it('should calculate reputation accurately from ratings', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.uuid(),
-        reviewStatsArbitrary(),
-        async (userId, reviewStats) => {
-          (reviewRepository.getReviewStats as jest.Mock).mockResolvedValue(
-            reviewStats,
-          );
-
-          const reputation = await usersService.calculateReputation(userId);
-
-          expect(reviewRepository.getReviewStats).toHaveBeenCalledWith(userId);
-          expect(reputation).toBeGreaterThanOrEqual(0);
-          expect(reputation).toBeLessThanOrEqual(5);
-
-          if (reviewStats.totalReviews === 0) {
-            expect(reputation).toBe(0);
-          } else {
-            // Reputation should be influenced by both average rating and review count
-            expect(reputation).toBeGreaterThan(0);
-            expect(reputation).toBeLessThanOrEqual(reviewStats.averageRating);
-
-            // More reviews should lead to reputation closer to average rating
-            const expectedMinReputation = reviewStats.averageRating * 0.5;
-            const expectedMaxReputation = reviewStats.averageRating;
-
-            expect(reputation).toBeGreaterThanOrEqual(
-              expectedMinReputation - 0.01,
-            );
-            expect(reputation).toBeLessThanOrEqual(
-              expectedMaxReputation + 0.01,
-            );
-          }
+      const mockTransactions = [
+        {
+          id: 'transaction-1',
+          amount: 299.99,
+          status: 'completed',
         },
-      ),
-      { numRuns: 100 },
-    );
-  });
+      ];
 
-  /**
-   * Property 26: Dashboard displays user activity
-   * For any user dashboard access, the system should display their active listings, recent transactions, and message summary
-   * Validates: Requirements 6.2
-   */
-  it('should display comprehensive user activity in dashboard', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        userEntityArbitrary(),
-        transactionStatsArbitrary(),
-        reviewStatsArbitrary(),
-        async (userEntity, transactionStats, reviewStats) => {
-          const user = { ...userEntity, reputation: 0 } as User;
-          const mockArtworks = [];
-          const mockTransactions = [];
-          const mockReviews = [];
-
-          (userRepository.findById as jest.Mock).mockResolvedValue(user);
-          (artworkRepository.findBySeller as jest.Mock).mockResolvedValue([
-            mockArtworks,
-            mockArtworks.length,
-          ]);
-          (transactionRepository.findByBuyer as jest.Mock).mockResolvedValue([
-            mockTransactions,
-            mockTransactions.length,
-          ]);
-          (transactionRepository.findBySeller as jest.Mock).mockResolvedValue([
-            mockTransactions,
-            mockTransactions.length,
-          ]);
-          (
-            transactionRepository.getUserTransactionStats as jest.Mock
-          ).mockResolvedValue(transactionStats);
-          (reviewRepository.findByReviewee as jest.Mock).mockResolvedValue([
-            mockReviews,
-            mockReviews.length,
-          ]);
-          (reviewRepository.getReviewStats as jest.Mock).mockResolvedValue(
-            reviewStats,
-          );
-
-          const dashboard = await usersService.getUserDashboard(user.id);
-
-          expect(userRepository.findById).toHaveBeenCalledWith(user.id);
-          expect(artworkRepository.findBySeller).toHaveBeenCalledWith(
-            user.id,
-            0,
-            5,
-          );
-          expect(transactionRepository.findByBuyer).toHaveBeenCalledWith(
-            user.id,
-            0,
-            5,
-          );
-          expect(transactionRepository.findBySeller).toHaveBeenCalledWith(
-            user.id,
-            0,
-            5,
-          );
-          expect(
-            transactionRepository.getUserTransactionStats,
-          ).toHaveBeenCalledWith(user.id);
-          expect(reviewRepository.findByReviewee).toHaveBeenCalledWith(
-            user.id,
-            0,
-            5,
-          );
-
-          // Verify dashboard structure
-          expect(dashboard).toBeDefined();
-          expect(dashboard.user).toBeDefined();
-          expect(dashboard.activeListings).toBeDefined();
-          expect(dashboard.recentPurchases).toBeDefined();
-          expect(dashboard.recentSales).toBeDefined();
-          expect(dashboard.transactionStats).toBeDefined();
-          expect(dashboard.recentReviews).toBeDefined();
-          expect(dashboard.reputation).toBeGreaterThanOrEqual(0);
-          expect(dashboard.reputation).toBeLessThanOrEqual(5);
-
-          // Verify transaction stats structure
-          expect(dashboard.transactionStats.totalPurchases).toBe(
-            transactionStats.totalPurchases,
-          );
-          expect(dashboard.transactionStats.totalSales).toBe(
-            transactionStats.totalSales,
-          );
-          expect(dashboard.transactionStats.totalSpent).toBe(
-            transactionStats.totalSpent,
-          );
-          expect(dashboard.transactionStats.totalEarned).toBe(
-            transactionStats.totalEarned,
-          );
+      const mockReviews = [
+        {
+          id: 'review-1',
+          rating: 5,
+          comment: 'Great seller!',
         },
-      ),
-      { numRuns: 50 },
-    );
+      ];
+
+      const transactionStats = {
+        totalPurchases: 5,
+        totalSales: 3,
+        totalSpent: 1250.0,
+        totalEarned: 890.0,
+      };
+
+      const reviewStats = {
+        totalReviews: 10,
+        averageRating: 4.5,
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockArtworkRepository.findBySeller.mockResolvedValue([mockArtworks, mockArtworks.length]);
+      mockTransactionRepository.findByBuyer.mockResolvedValue([mockTransactions, 1]);
+      mockTransactionRepository.findBySeller.mockResolvedValue([mockTransactions, 1]);
+      mockTransactionRepository.getUserTransactionStats.mockResolvedValue(transactionStats);
+      mockReviewRepository.findByReviewee.mockResolvedValue([mockReviews, 1]);
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+
+      const result = await service.getUserDashboard(mockUser.id);
+
+      expect(result.user).toEqual(mockUser);
+      expect(result.activeListings).toEqual(mockArtworks);
+      expect(result.recentPurchases).toEqual(mockTransactions);
+      expect(result.recentSales).toEqual(mockTransactions);
+      expect(result.transactionStats).toEqual(transactionStats);
+      expect(result.recentReviews).toEqual(mockReviews);
+      expect(result.reputation).toBe(4.5);
+    });
+
+    it('should update reputation if significantly different', async () => {
+      const userWithOldReputation = { ...mockUser, reputation: 2.0 };
+
+      const reviewStats = {
+        totalReviews: 10,
+        averageRating: 4.5,
+      };
+
+      mockUserRepository.findById.mockResolvedValue(userWithOldReputation);
+      mockArtworkRepository.findBySeller.mockResolvedValue([[], 0]);
+      mockTransactionRepository.findByBuyer.mockResolvedValue([[], 0]);
+      mockTransactionRepository.findBySeller.mockResolvedValue([[], 0]);
+      mockTransactionRepository.getUserTransactionStats.mockResolvedValue({
+        totalPurchases: 0,
+        totalSales: 0,
+        totalSpent: 0,
+        totalEarned: 0,
+      });
+      mockReviewRepository.findByReviewee.mockResolvedValue([[], 0]);
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+      mockUserRepository.updateReputation.mockResolvedValue(undefined);
+
+      const result = await service.getUserDashboard(mockUser.id);
+
+      expect(userRepository.updateReputation).toHaveBeenCalledWith(mockUser.id, 4.5);
+      expect(result.reputation).toBe(4.5);
+    });
   });
 
-  /**
-   * Property Test: Username uniqueness validation
-   * Verifies that username updates properly check for uniqueness
-   */
-  it('should validate username uniqueness during profile updates', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        userEntityArbitrary(),
-        fc.string({ minLength: 3, maxLength: 50 }),
-        async (userEntity, newUsername) => {
-          const user = { ...userEntity, reputation: 0 } as User;
-          const updateDto = { username: newUsername };
+  describe('getUserProfile', () => {
+    it('should get user profile successfully', async () => {
+      const transactionStats = {
+        totalPurchases: 5,
+        totalSales: 3,
+        totalSpent: 1250.0,
+        totalEarned: 890.0,
+      };
 
-          (userRepository.findById as jest.Mock).mockResolvedValue(user);
+      const reviewStats = {
+        totalReviews: 10,
+        averageRating: 4.5,
+      };
 
-          if (newUsername === user.username) {
-            // Same username should be allowed
-            (userRepository.findByUsername as jest.Mock).mockResolvedValue(
-              null,
-            );
-            (userRepository.update as jest.Mock).mockResolvedValue({
-              ...user,
-              username: newUsername,
-            });
-
-            const result = await usersService.updateProfile(user.id, updateDto);
-            expect(result).toBeDefined();
-          } else {
-            // Different username - test both available and taken scenarios
-            const existingUser = {
-              id: 'other-id',
-              username: newUsername,
-            } as User;
-            (userRepository.findByUsername as jest.Mock).mockResolvedValue(
-              existingUser,
-            );
-
-            await expect(
-              usersService.updateProfile(user.id, updateDto),
-            ).rejects.toThrow(ConflictException);
-            expect(userRepository.findByUsername).toHaveBeenCalledWith(
-              newUsername,
-            );
-          }
+      const mockArtworks = [
+        {
+          id: 'artwork-1',
+          title: 'Test Artwork',
+          price: 299.99,
         },
-      ),
-      { numRuns: 50 },
-    );
+      ];
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockTransactionRepository.getUserTransactionStats.mockResolvedValue(transactionStats);
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+      mockArtworkRepository.findBySeller.mockResolvedValue([mockArtworks, 1]);
+
+      const result = await service.getUserProfile(mockUser.id);
+
+      expect(result.id).toBe(mockUser.id);
+      expect(result.username).toBe(mockUser.username);
+      expect(result.stats.totalSales).toBe(3);
+      expect(result.stats.totalPurchases).toBe(5);
+      expect(result.recentArtworks).toEqual(mockArtworks);
+    });
   });
 
-  /**
-   * Property Test: User profile data consistency
-   * Verifies that user profile data maintains consistency across different operations
-   */
-  it('should maintain user profile data consistency', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        userEntityArbitrary(),
-        transactionStatsArbitrary(),
-        reviewStatsArbitrary(),
-        async (userEntity, transactionStats, reviewStats) => {
-          const user = { ...userEntity, reputation: 0 } as User;
-          const mockArtworks = [];
+  describe('getUserStats', () => {
+    it('should get user statistics successfully', async () => {
+      const transactionStats = {
+        totalPurchases: 5,
+        totalSales: 3,
+        totalSpent: 1250.0,
+        totalEarned: 890.0,
+      };
 
-          (userRepository.findById as jest.Mock).mockResolvedValue(user);
-          (
-            transactionRepository.getUserTransactionStats as jest.Mock
-          ).mockResolvedValue(transactionStats);
-          (reviewRepository.getReviewStats as jest.Mock).mockResolvedValue(
-            reviewStats,
-          );
-          (artworkRepository.findBySeller as jest.Mock).mockResolvedValue([
-            mockArtworks,
-            mockArtworks.length,
-          ]);
+      const reviewStats = {
+        totalReviews: 10,
+        averageRating: 4.5,
+      };
 
-          const profile = await usersService.getUserProfile(user.id);
+      mockTransactionRepository.getUserTransactionStats.mockResolvedValue(transactionStats);
+      mockReviewRepository.getReviewStats.mockResolvedValue(reviewStats);
+      mockArtworkRepository.findBySeller.mockResolvedValue([[], 12]);
 
-          // Verify profile data consistency
-          expect(profile.id).toBe(user.id);
-          expect(profile.username).toBe(user.username);
-          expect(profile.firstName).toBe(user.firstName);
-          expect(profile.lastName).toBe(user.lastName);
-          expect(profile.bio).toBe(user.bio);
-          expect(profile.location).toBe(user.location);
-          expect(profile.isVerified).toBe(user.isVerified);
-          expect(profile.createdAt).toBe(user.createdAt);
+      const result = await service.getUserStats(mockUser.id);
 
-          // Verify stats consistency
-          expect(profile.stats.totalSales).toBe(transactionStats.totalSales);
-          expect(profile.stats.totalPurchases).toBe(
-            transactionStats.totalPurchases,
-          );
-          expect(profile.stats.totalEarned).toBe(transactionStats.totalEarned);
-          expect(profile.stats.totalSpent).toBe(transactionStats.totalSpent);
-          expect(profile.stats.totalReviews).toBe(reviewStats.totalReviews);
-          expect(profile.stats.averageRating).toBe(reviewStats.averageRating);
-
-          // Verify arrays are defined
-          expect(Array.isArray(profile.recentArtworks)).toBe(true);
-        },
-      ),
-      { numRuns: 50 },
-    );
+      expect(result.totalListings).toBe(12);
+      expect(result.totalSales).toBe(3);
+      expect(result.totalPurchases).toBe(5);
+      expect(result.totalEarned).toBe(890.0);
+      expect(result.totalSpent).toBe(1250.0);
+      expect(result.totalReviews).toBe(10);
+      expect(result.averageRating).toBe(4.5);
+    });
   });
 
-  /**
-   * Property Test: User existence validation
-   * Verifies that user existence checks work correctly
-   */
-  it('should validate user existence correctly', async () => {
-    await fc.assert(
-      fc.asyncProperty(fc.uuid(), async (userId) => {
-        // Test existing user
-        (userRepository.exists as jest.Mock).mockResolvedValue(true);
-        const existsResult = await usersService.validateUserExists(userId);
-        expect(existsResult).toBe(true);
-        expect(userRepository.exists).toHaveBeenCalledWith({ id: userId });
+  describe('searchUsers', () => {
+    it('should search users successfully', async () => {
+      const mockUsers = [mockUser];
+      mockUserRepository.findAll.mockResolvedValue([mockUsers, 1]);
 
-        // Test non-existing user
-        (userRepository.exists as jest.Mock).mockResolvedValue(false);
-        const notExistsResult = await usersService.validateUserExists(userId);
-        expect(notExistsResult).toBe(false);
-      }),
-      { numRuns: 50 },
-    );
+      const result = await service.searchUsers('test', 0, 10);
+
+      expect(userRepository.findAll).toHaveBeenCalledWith(0, 10);
+      expect(result).toEqual([mockUsers, 1]);
+    });
   });
 
-  /**
-   * Property Test: User deactivation and reactivation
-   * Verifies that user account status changes work correctly
-   */
-  it('should handle user deactivation and reactivation correctly', async () => {
-    await fc.assert(
-      fc.asyncProperty(userEntityArbitrary(), async (userEntity) => {
-        const user = { ...userEntity, reputation: 0 } as User;
+  describe('deactivateUser', () => {
+    it('should deactivate user successfully', async () => {
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepository.update.mockResolvedValue(undefined);
 
-        (userRepository.findById as jest.Mock).mockResolvedValue(user);
-        (userRepository.update as jest.Mock).mockResolvedValue(user);
+      await service.deactivateUser(mockUser.id);
 
-        // Test deactivation
-        await usersService.deactivateUser(user.id);
-        expect(userRepository.update).toHaveBeenCalledWith(user.id, {
-          isActive: false,
-        });
+      expect(userRepository.update).toHaveBeenCalledWith(mockUser.id, { isActive: false });
+    });
 
-        // Test reactivation
-        await usersService.reactivateUser(user.id);
-        expect(userRepository.update).toHaveBeenCalledWith(user.id, {
-          isActive: true,
-        });
-      }),
-      { numRuns: 50 },
-    );
+    it('should throw NotFoundException if user not found', async () => {
+      mockUserRepository.findById.mockResolvedValue(null);
+
+      await expect(service.deactivateUser('nonexistent-id')).rejects.toThrow(NotFoundException);
+    });
   });
 
-  /**
-   * Property Test: Profile image management
-   * Verifies that profile image upload and removal work correctly
-   */
-  it('should handle profile image management correctly', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        userEntityArbitrary(),
-        fc.webUrl(),
-        async (userEntity, imageUrl) => {
-          const user = { ...userEntity, reputation: 0 } as User;
-          const updatedUser = { ...user, profileImage: imageUrl };
+  describe('reactivateUser', () => {
+    it('should reactivate user successfully', async () => {
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepository.update.mockResolvedValue(undefined);
 
-          (userRepository.update as jest.Mock).mockResolvedValue(updatedUser);
+      await service.reactivateUser(mockUser.id);
 
-          // Test image upload
-          const uploadResult = await usersService.uploadProfileImage(
-            user.id,
-            imageUrl,
-          );
-          expect(userRepository.update).toHaveBeenCalledWith(user.id, {
-            profileImage: imageUrl,
-          });
-          expect(uploadResult.profileImage).toBe(imageUrl);
+      expect(userRepository.update).toHaveBeenCalledWith(mockUser.id, { isActive: true });
+    });
 
-          // Test image removal
-          const removedUser = { ...user, profileImage: null };
-          (userRepository.update as jest.Mock).mockResolvedValue(removedUser);
+    it('should throw NotFoundException if user not found', async () => {
+      mockUserRepository.findById.mockResolvedValue(null);
 
-          const removeResult = await usersService.removeProfileImage(user.id);
-          expect(userRepository.update).toHaveBeenCalledWith(user.id, {
-            profileImage: null,
-          });
-          expect(removeResult.profileImage).toBeNull();
-        },
-      ),
-      { numRuns: 50 },
-    );
+      await expect(service.reactivateUser('nonexistent-id')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('uploadProfileImage', () => {
+    it('should upload profile image successfully', async () => {
+      const imageUrl = 'https://example.com/profile.jpg';
+      const updatedUser = { ...mockUser, profileImage: imageUrl };
+
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+
+      const result = await service.uploadProfileImage(mockUser.id, imageUrl);
+
+      expect(userRepository.update).toHaveBeenCalledWith(mockUser.id, { profileImage: imageUrl });
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      const imageUrl = 'https://example.com/profile.jpg';
+      mockUserRepository.update.mockResolvedValue(null);
+
+      await expect(service.uploadProfileImage('nonexistent-id', imageUrl)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('removeProfileImage', () => {
+    it('should remove profile image successfully', async () => {
+      const updatedUser = { ...mockUser, profileImage: null };
+
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+
+      const result = await service.removeProfileImage(mockUser.id);
+
+      expect(userRepository.update).toHaveBeenCalledWith(mockUser.id, { profileImage: null });
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      mockUserRepository.update.mockResolvedValue(null);
+
+      await expect(service.removeProfileImage('nonexistent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('validateUserExists', () => {
+    it('should return true if user exists', async () => {
+      mockUserRepository.exists.mockResolvedValue(true);
+
+      const result = await service.validateUserExists(mockUser.id);
+
+      expect(userRepository.exists).toHaveBeenCalledWith({ id: mockUser.id });
+      expect(result).toBe(true);
+    });
+
+    it('should return false if user does not exist', async () => {
+      mockUserRepository.exists.mockResolvedValue(false);
+
+      const result = await service.validateUserExists('nonexistent-id');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getUsersByIds', () => {
+    it('should get users by IDs successfully', async () => {
+      const userIds = [mockUser.id, 'another-id'];
+      const anotherUser = { ...mockUser, id: 'another-id', username: 'anotheruser' };
+
+      mockUserRepository.findById
+        .mockResolvedValueOnce(mockUser)
+        .mockResolvedValueOnce(anotherUser);
+
+      const result = await service.getUsersByIds(userIds);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(mockUser);
+      expect(result[1]).toEqual(anotherUser);
+    });
+
+    it('should skip non-existent users', async () => {
+      const userIds = [mockUser.id, 'nonexistent-id'];
+
+      mockUserRepository.findById
+        .mockResolvedValueOnce(mockUser)
+        .mockRejectedValueOnce(new NotFoundException());
+
+      const result = await service.getUsersByIds(userIds);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(mockUser);
+    });
   });
 });

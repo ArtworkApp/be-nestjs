@@ -93,29 +93,29 @@ This implementation plan breaks down the artwork marketplace into discrete codin
     - **Property 26: Dashboard displays user activity**
     - **Validates: Requirements 6.2**
 
-- [ ] 5. Checkpoint - Core user functionality
+- [x] 5. Checkpoint - Core user functionality
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Artwork management module
-  - [ ] 6.1 Create artwork service with listing operations
+- [x] 6. Artwork management module
+  - [x] 6.1 Create artwork service with listing operations
     - Implement artwork creation, update, and deletion
     - Add image upload handling with Sharp processing
     - Create listing status management
     - _Requirements: 2.1, 2.3, 2.4, 2.5_
   
-  - [ ]* 6.2 Write property tests for artwork operations
+  - [x] 6.2 Write property tests for artwork operations
     - **Property 7: Incomplete listing data is rejected**
     - **Property 8: Listing updates are saved and displayed**
     - **Property 9: Listing deletion removes from public view**
     - **Validates: Requirements 2.2, 2.3, 2.4**
   
-  - [ ] 6.3 Create artwork controller with CRUD endpoints
+  - [x] 6.3 Create artwork controller with CRUD endpoints
     - Implement artwork listing creation and management endpoints
     - Add file upload endpoints with validation
     - Create seller-specific artwork retrieval endpoints
     - _Requirements: 2.1, 2.3, 2.4_
   
-  - [ ]* 6.4 Write property test for image processing
+  - [x] 6.4 Write property test for image processing
     - **Property 10: Image upload validation and compression**
     - **Validates: Requirements 2.5**
 

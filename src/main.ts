@@ -46,20 +46,56 @@ async function bootstrap() {
   if (configService.get('app.nodeEnv') !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Artwork Marketplace API')
-      .setDescription('API for the artwork resale marketplace platform')
+      .setDescription(
+        'A comprehensive API for the artwork resale marketplace platform. ' +
+        'This API allows users to register, authenticate, list artworks for sale, ' +
+        'search and discover art pieces, and manage their profiles and transactions.'
+      )
       .setVersion('1.0')
-      .addBearerAuth()
-      .addTag('auth', 'Authentication endpoints')
-      .addTag('users', 'User management endpoints')
-      .addTag('artworks', 'Artwork listing endpoints')
-      .addTag('search', 'Search and discovery endpoints')
-      .addTag('transactions', 'Transaction processing endpoints')
-      .addTag('messages', 'User communication endpoints')
-      .addTag('admin', 'Administrative endpoints')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
+      .addTag('auth', 'Authentication and authorization endpoints')
+      .addTag('users', 'User profile and account management endpoints')
+      .addTag('artworks', 'Artwork listing and management endpoints')
+      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development server')
+      .setContact(
+        'API Support',
+        'https://github.com/your-repo/artwork-marketplace',
+        'support@artworkmarketplace.com'
+      )
+      .setLicense('MIT', 'https://opensource.org/licenses/MIT')
       .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
+    const document = SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+    });
+    
+    SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+      },
+      customSiteTitle: 'Artwork Marketplace API Documentation',
+      customfavIcon: '/favicon.ico',
+      customCss: `
+        .topbar-wrapper .link {
+          content: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjMDA3M0U2Ii8+Cjwvc3ZnPgo=');
+          width: 120px;
+          height: auto;
+        }
+        .swagger-ui .topbar { background-color: #1976d2; }
+      `,
+    });
   }
 
   await app.listen(port);
