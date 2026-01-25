@@ -1,8 +1,77 @@
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { CustomLoggerService } from './common/logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+  const app = await NestFactory.create(AppModule, {
+    logger: new CustomLoggerService(),
+  });
+
+  const configService = app.get(ConfigService);
+  const port = configService.get('app.port');
+  const apiPrefix = configService.get('app.apiPrefix');
+
+  // Security middleware
+  app.use(helmet());
+
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
+  // API prefix
+  app.setGlobalPrefix(apiPrefix);
+
+  // CORS configuration
+  app.enableCors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? ['https://your-frontend-domain.com']
+        : true,
+    credentials: true,
+  });
+
+  // Swagger documentation
+  if (configService.get('app.nodeEnv') !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Artwork Marketplace API')
+      .setDescription('API for the artwork resale marketplace platform')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth', 'Authentication endpoints')
+      .addTag('users', 'User management endpoints')
+      .addTag('artworks', 'Artwork listing endpoints')
+      .addTag('search', 'Search and discovery endpoints')
+      .addTag('transactions', 'Transaction processing endpoints')
+      .addTag('messages', 'User communication endpoints')
+      .addTag('admin', 'Administrative endpoints')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
+  }
+
+  await app.listen(port);
+  console.log(
+    `🚀 Artwork Marketplace API running on http://localhost:${port}/${apiPrefix}`,
+  );
+
+  if (configService.get('app.nodeEnv') !== 'production') {
+    console.log(
+      `📚 API Documentation available at http://localhost:${port}/${apiPrefix}/docs`,
+    );
+  }
 }
+
 bootstrap();
