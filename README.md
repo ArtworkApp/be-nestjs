@@ -28,12 +28,13 @@ node demo-start.js
 ```
 
 This will start the API at `http://localhost:3000` with:
+
 - 📚 **Swagger Documentation**: http://localhost:3000/api/v1/docs
 - 🌐 **API Base URL**: http://localhost:3000/api/v1
 
 ### Option 2: Full Development Setup
 
-For full functionality with PostgreSQL and Redis:
+For full functionality with MongoDB and Redis:
 
 ```bash
 # 1. Start database services (requires Docker)
@@ -57,6 +58,7 @@ Once running, visit the interactive Swagger documentation:
 **🔗 http://localhost:3000/api/v1/docs**
 
 The documentation includes:
+
 - All available endpoints with examples
 - Request/response schemas
 - Authentication examples
@@ -66,6 +68,7 @@ The documentation includes:
 ## 🔑 API Endpoints Overview
 
 ### Authentication (`/api/v1/auth`)
+
 - `POST /register` - Register new user
 - `POST /login` - User login
 - `GET /verify-email/:token` - Verify email
@@ -76,6 +79,7 @@ The documentation includes:
 - `GET /profile` - Get current user profile
 
 ### Users (`/api/v1/users`)
+
 - `GET /me/dashboard` - User dashboard with stats
 - `GET /me/stats` - User statistics
 - `PUT /me/profile` - Update profile
@@ -85,6 +89,7 @@ The documentation includes:
 - `GET /username/:username` - Get user by username
 
 ### Artworks (`/api/v1/artworks`)
+
 - `POST /` - Create artwork listing
 - `GET /search` - Search artworks with filters
 - `GET /featured` - Get featured artworks
@@ -220,12 +225,8 @@ PORT=3000
 NODE_ENV=development
 API_PREFIX=api/v1
 
-# Database (PostgreSQL)
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_USERNAME=artwork_user
-DATABASE_PASSWORD=artwork_password
-DATABASE_NAME=artwork_marketplace
+# Database (MongoDB)
+MONGO_URI=mongodb://localhost:27017/artwork_marketplace
 
 # JWT Authentication
 JWT_SECRET=your-secret-key
@@ -241,7 +242,7 @@ REDIS_PORT=6379
 #### Using Docker (Recommended)
 
 ```bash
-# Start PostgreSQL and Redis
+# Start MongoDB and Redis
 docker-compose up -d
 
 # Check status
@@ -250,14 +251,8 @@ docker-compose ps
 
 #### Manual Setup
 
-1. Install PostgreSQL
-2. Create database and user:
-
-```sql
-CREATE DATABASE artwork_marketplace;
-CREATE USER artwork_user WITH PASSWORD 'artwork_password';
-GRANT ALL PRIVILEGES ON DATABASE artwork_marketplace TO artwork_user;
-```
+1. Install MongoDB
+2. Start MongoDB and ensure the `artwork_marketplace` database is reachable via `MONGO_URI`
 
 ## 🚀 Production Deployment
 
@@ -276,7 +271,7 @@ npm run start:prod
 1. Set `NODE_ENV=production`
 2. Configure secure JWT secret
 3. Set up production database
-4. Configure external services (Redis, S3, etc.)
+4. Configure external services (Redis, etc.)
 5. Set up reverse proxy (nginx)
 6. Configure SSL/TLS
 
@@ -295,6 +290,7 @@ CMD ["node", "dist/main"]
 ## 📊 API Features
 
 ### Authentication & Security
+
 - JWT-based authentication
 - Email verification
 - Password reset functionality
@@ -304,12 +300,14 @@ CMD ["node", "dist/main"]
 - Helmet security headers
 
 ### User Management
+
 - User profiles with reputation system
 - Dashboard with statistics
 - Profile image upload
 - Account management
 
 ### Artwork Management
+
 - CRUD operations for artwork listings
 - Image upload and management
 - Category-based organization
@@ -317,6 +315,7 @@ CMD ["node", "dist/main"]
 - View tracking
 
 ### Search & Discovery
+
 - Advanced search with multiple filters
 - Category-based browsing
 - Featured artwork system
@@ -339,6 +338,7 @@ This project is licensed under the MIT License.
 ## 🆘 Support
 
 For support and questions:
+
 - 📖 Check the [API Documentation](http://localhost:3000/api/v1/docs)
 - 🐛 Report issues on GitHub
 - 💬 Join our community discussions

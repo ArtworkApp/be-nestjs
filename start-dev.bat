@@ -11,7 +11,7 @@ if errorlevel 1 (
 )
 
 REM Start database services
-echo 🐘 Starting PostgreSQL and Redis...
+echo 🍃 Starting MongoDB and Redis...
 docker-compose up -d
 
 REM Wait for services to be ready
