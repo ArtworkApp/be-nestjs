@@ -1,74 +1,97 @@
-# 🎨 Artwork Marketplace API
+# 🎨 Artwork Marketplace API (AWS Serverless Edition)
 
-A comprehensive NestJS-based REST API for an artwork resale marketplace platform. This API provides authentication, user management, artwork listings, and comprehensive search functionality.
+A comprehensive, production-ready NestJS REST API for an artwork resale marketplace platform. This API provides authentication, user management, artwork listings, and comprehensive search functionality. 
+
+The architecture is fully optimized to run serverless on AWS using the **Serverless Framework**, **AWS Lambda**, and **Amazon Aurora Serverless (PostgreSQL)**—minimizing operational costs to \$0/month under zero traffic while supporting immediate scaling during marketing spikes.
+
+---
+
+## 🏗️ System Architecture Layout
+
+The platform decouples business logic, user sessions, data processing, and heavy media assets to ensure high performance across both mobile and web clients:
+
+```text
+                      ┌───► Web App (React/Next.js) ──────┐
+                      │                                   ▼
+User Devices ─────────┼───► Mobile App (React/Flutter) ───┼──► [ Amazon CloudFront (CDN) ]
+                      │                                   │      (Dynamic Image Handler)
+                      ▼                                   │                │
+               [ AWS API Gateway ]                        │                ▼
+          (Throttling & Rate Limiting)                    │        [ Amazon S3 Vault ]
+                      │                                   │     (High-Res Art Storage)
+                      ▼                                   │                ▲
+            [ AWS Lambda (NestJS) ] ──────────────────────┘                │
+            (Stateless Compute Core)                                       │
+                      │                                                    │
+         ┌────────────┴────────────┐                                       │
+         ▼                         ▼                                       │
+ [ Amazon Cognito ]   [ Aurora Serverless (Postgres) ]                     │
+ (Stateless JWT Auth)   (Relational Data & FTS Search) ────────────────────┘
+```
+
+### Architectural Component Specifications:
+* **AWS API Gateway**: Acts as the single entry point for all platforms. It handles edge **Throttling and Rate Limiting** to drop malicious or flooding traffic before it ever touches your compute layer, saving execution budget.
+* **AWS Lambda (Compute Core)**: Houses your entire NestJS application. It remains completely stateless, spinning up hundreds of concurrent micro-containers instantly during high-traffic artwork drops, and winds down to exactly zero instances when idle.
+* **Amazon Cognito**: Handles user registration, verification emails, and secure logins. It issues cryptographically signed JWT tokens, allowing the NestJS Lambda core to authenticate users statelessly without running persistent session database queries.
+* **Amazon Aurora Serverless v2 (PostgreSQL)**: Serves as the primary relational database. It scales database processing units up and down smoothly based on transaction load to handle users, listings, purchases, and advanced filters using optimized PostgreSQL Full-Text Search (FTS) indexes.
+* **S3 Vault & CloudFront Delivery**: Media assets are fully isolated from the backend computing environment. High-resolution artwork images are uploaded via secure, short-lived **S3 Presigned URLs** straight from the client device to S3, bypassing Lambda completely. **Amazon CloudFront (CDN)** caches, compresses, and delivers optimized layout variations (WebP/AVIF formats) dynamically to end-users worldwide.
+
+---
 
 ## ✨ Features
 
-- **🔐 Authentication & Authorization**: JWT-based auth with email verification
-- **👥 User Management**: Profile management, reputation system, dashboard
-- **🖼️ Artwork Management**: CRUD operations, image upload, categorization
-- **🔍 Search & Discovery**: Advanced search with filters, featured listings
-- **📚 API Documentation**: Interactive Swagger/OpenAPI documentation
-- **🧪 Comprehensive Testing**: Unit tests with property-based testing
-- **🛡️ Security**: Helmet, CORS, rate limiting, input validation
-- **📊 Monitoring**: Health checks, logging with Winston
+- **🔐 Authentication & Authorization**: JWT-based auth with email verification powered by **Amazon Cognito**.
+- **👥 User Management**: Profile management, reputation system, and interactive dashboard analytics.
+- **🖼️ Artwork Management**: CRUD operations with an optimized **Amazon S3 Presigned URL** file upload flow to completely bypass server compute bottlenecks.
+- **🔍 Search & Discovery**: Advanced search with multi-criteria filters powered by **Amazon Aurora Serverless** PostgreSQL indexing.
+- **📚 API Documentation**: Interactive Swagger/OpenAPI documentation hosted seamlessly on serverless execution contexts.
+- **🧪 Comprehensive Testing**: Unit tests paired with property-based testing (`fast-check`) running inside automated pipelines.
+- **🛡️ Security**: Cloud-edge infrastructure protection using **AWS API Gateway Throttling** paired with NestJS Helmet, CORS, and structural input validation.
+- **📊 Monitoring**: Real-time serverless logging using **Winston** feeding natively into **Amazon CloudWatch Logs & Metrics**.
+
+---
 
 ## 🚀 Quick Start
 
-### Option 1: Demo Mode (No External Dependencies)
+### Option 1: Local Development Setup (Docker & Postgres)
 
-The fastest way to try the API:
-
-```bash
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Start in demo mode
-node demo-start.js
-```
-
-This will start the API at `http://localhost:3000` with:
-
-- 📚 **Swagger Documentation**: http://localhost:3000/api/v1/docs
-- 🌐 **API Base URL**: http://localhost:3000/api/v1
-
-### Option 2: Full Development Setup
-
-For full functionality with MongoDB and Redis:
+For fast, zero-cost development on your local machine using standard PostgreSQL:
 
 ```bash
-# 1. Start database services (requires Docker)
+# 1. Start local PostgreSQL development database
 docker-compose up -d
 
 # 2. Install dependencies
 npm install --legacy-peer-deps
 
-# 3. Start the application
+# 3. Start the application with hot reload
 npm run start:dev
-
-# Or use the convenience script
-./start-dev.sh    # Linux/Mac
-start-dev.bat     # Windows
 ```
 
-## 📖 API Documentation
+This will start the local API server at `http://localhost:3000` with:
+- 📚 **Swagger Documentation**: http://localhost:3000/api/v1/docs
+- 🌐 **API Base URL**: http://localhost:3000/api/v1
 
-Once running, visit the interactive Swagger documentation:
+### Option 2: Serverless AWS Cloud Deployment (Production)
 
-**🔗 http://localhost:3000/api/v1/docs**
+This project uses the **Serverless Framework** to automatically package, build, and provision your entire AWS architecture via code.
 
-The documentation includes:
+```bash
+# 1. Install the Serverless Framework CLI globally
+npm install -g serverless
 
-- All available endpoints with examples
-- Request/response schemas
-- Authentication examples
-- Try-it-out functionality
-- Model definitions
+# 2. Compile your TypeScript NestJS application
+npm run build
+
+# 3. Deploy the entire live architecture to AWS
+serverless deploy --stage prod
+```
+
+---
 
 ## 🔑 API Endpoints Overview
 
 ### Authentication (`/api/v1/auth`)
-
 - `POST /register` - Register new user
 - `POST /login` - User login
 - `GET /verify-email/:token` - Verify email
@@ -79,19 +102,18 @@ The documentation includes:
 - `GET /profile` - Get current user profile
 
 ### Users (`/api/v1/users`)
-
 - `GET /me/dashboard` - User dashboard with stats
 - `GET /me/stats` - User statistics
 - `PUT /me/profile` - Update profile
-- `PUT /me/profile-image` - Upload profile image
+- `PUT /me/profile-image` - Get S3 presigned upload URL for profile image
 - `GET /search` - Search users
 - `GET /:id` - Get user profile by ID
 - `GET /username/:username` - Get user by username
 
 ### Artworks (`/api/v1/artworks`)
-
 - `POST /` - Create artwork listing
-- `GET /search` - Search artworks with filters
+- `POST /upload-url` - Request secure S3 presigned URL for direct artwork photo uploads
+- `GET /search` - Search artworks with advanced relational filters
 - `GET /featured` - Get featured artworks
 - `GET /recent` - Get recent artworks
 - `GET /categories/:category` - Get by category
@@ -100,249 +122,85 @@ The documentation includes:
 - `GET /:id` - Get artwork details
 - `PUT /:id` - Update artwork
 - `DELETE /:id` - Delete artwork
-- `PUT /:id/status/:status` - Update status
+- `PUT /:id/status/:status` - Update status (active, sold, inactive)
+
+---
+
+## 🖼️ Media Management Flow (S3 Presigned URLs)
+
+To avoid AWS Lambda execution time limits and the 6MB payload restriction, images are **never** uploaded directly to the NestJS application server. 
+
+```text
+[Client App] ─── (1) Req Upload URL ───► [NestJS Lambda]
+[Client App] ◄─── (2) Return Presigned URL ─ [NestJS Lambda]
+[Client App] ─── (3) Binary PUT Upload ──────────────────────► [Amazon S3]
+[Client App] ─── (4) Save S3 Asset Metadata ──► [NestJS Lambda]
+```
+
+1. The client requests an upload authorization token from `/api/v1/artworks/upload-url`.
+2. NestJS communicates with the AWS SDK to generate an ephemeral, secure **S3 Presigned URL**.
+3. The client uploads the binary high-resolution artwork image **directly to Amazon S3**, bypassing compute limits.
+4. The client saves the final artwork metadata pointing to the S3 bucket key.
+
+---
 
 ## 🧪 Testing the API
 
-### 1. Register a User
+The project includes a comprehensive testing suite decoupled from AWS infrastructure:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "artist@example.com",
-    "username": "artist123",
-    "password": "SecurePass123!",
-    "firstName": "Jane",
-    "lastName": "Artist"
-  }'
-```
-
-### 2. Login
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "emailOrUsername": "artist@example.com",
-    "password": "SecurePass123!"
-  }'
-```
-
-Save the `accessToken` from the response.
-
-### 3. Create an Artwork
-
-```bash
-curl -X POST http://localhost:3000/api/v1/artworks \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{
-    "title": "Sunset Over Mountains",
-    "description": "A beautiful landscape painting capturing the golden hour",
-    "price": 450.00,
-    "currency": "USD",
-    "category": "PAINTING",
-    "medium": "Oil on canvas",
-    "dimensions": "30\" x 40\"",
-    "year": 2023,
-    "images": ["https://example.com/artwork1.jpg"],
-    "tags": ["landscape", "sunset", "mountains"]
-  }'
-```
-
-### 4. Search Artworks
-
-```bash
-curl "http://localhost:3000/api/v1/artworks/search?q=landscape&category=PAINTING&minPrice=100&maxPrice=1000"
-```
-
-## 🛠️ Development
-
-### Available Scripts
-
-```bash
-# Development
-npm run start:dev      # Start with hot reload
-npm run start:debug    # Start with debugging
-
-# Building
-npm run build          # Build the application
-npm run start:prod     # Start production build
-
-# Testing
-npm run test           # Run unit tests
-npm run test:watch     # Run tests in watch mode
-npm run test:cov       # Run tests with coverage
-npm run test:e2e       # Run end-to-end tests
-
-# Code Quality
-npm run lint           # Run ESLint
-npm run format         # Format code with Prettier
-```
-
-### Project Structure
-
-```
-src/
-├── auth/              # Authentication module
-├── users/             # User management module
-├── artworks/          # Artwork management module
-├── common/            # Shared utilities and enums
-├── config/            # Configuration files
-└── main.ts           # Application entry point
-```
-
-## 🧪 Testing
-
-The project includes comprehensive testing:
-
-- **Unit Tests**: 101+ tests covering all services and controllers
-- **Property-Based Testing**: Using fast-check for robust validation
-- **Integration Tests**: End-to-end API testing
-- **Test Coverage**: Detailed coverage reports
-
-```bash
-# Run all tests
+# Run all unit tests
 npm run test
 
-# Run with coverage
+# Run tests with coverage metrics
 npm run test:cov
 
-# Run specific test file
+# Run specific property-based test files (fast-check)
 npm run test -- auth.service.spec.ts
 ```
 
-## 🔧 Configuration
+---
 
-### Environment Variables
+## 🔧 Environment Configuration
 
-Key configuration options in `.env`:
+Key configuration parameters handled in your `.env` or injected by AWS Secret Manager:
 
 ```env
-# Application
+# Application Core
 PORT=3000
 NODE_ENV=development
 API_PREFIX=api/v1
 
-# Database (MongoDB)
-MONGO_URI=mongodb://localhost:27017/artwork_marketplace
+# AWS Serverless Relational Database (Aurora/PostgreSQL)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=securepassword
+DATABASE_NAME=artwork_marketplace
 
 # JWT Authentication
-JWT_SECRET=your-secret-key
+JWT_SECRET=your-secure-aws-secret-key
 JWT_EXPIRES_IN=7d
-
-# Optional Services
-REDIS_HOST=localhost
-REDIS_PORT=6379
 ```
 
-### Database Setup
+---
 
-#### Using Docker (Recommended)
+## 🛠️ Project Structure
 
-```bash
-# Start MongoDB and Redis
-docker-compose up -d
-
-# Check status
-docker-compose ps
+```text
+src/
+├── auth/              # Authentication & Cognito integrations
+├── users/             # User profiles & reputation logic
+├── artworks/          # Artwork catalog & S3 media handlers
+├── common/            # Shared guards, interceptors, and filters
+├── config/            # Serverless environment configuration mappings
+├── lambda.ts          # AWS Lambda entry point wrapper
+└── main.ts            # Local development machine entry point
 ```
 
-#### Manual Setup
-
-1. Install MongoDB
-2. Start MongoDB and ensure the `artwork_marketplace` database is reachable via `MONGO_URI`
-
-## 🚀 Production Deployment
-
-### Build for Production
-
-```bash
-# Build the application
-npm run build
-
-# Start production server
-npm run start:prod
-```
-
-### Environment Setup
-
-1. Set `NODE_ENV=production`
-2. Configure secure JWT secret
-3. Set up production database
-4. Configure external services (Redis, etc.)
-5. Set up reverse proxy (nginx)
-6. Configure SSL/TLS
-
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist ./dist
-EXPOSE 3000
-CMD ["node", "dist/main"]
-```
-
-## 📊 API Features
-
-### Authentication & Security
-
-- JWT-based authentication
-- Email verification
-- Password reset functionality
-- Rate limiting
-- Input validation
-- CORS protection
-- Helmet security headers
-
-### User Management
-
-- User profiles with reputation system
-- Dashboard with statistics
-- Profile image upload
-- Account management
-
-### Artwork Management
-
-- CRUD operations for artwork listings
-- Image upload and management
-- Category-based organization
-- Status management (active, sold, inactive)
-- View tracking
-
-### Search & Discovery
-
-- Advanced search with multiple filters
-- Category-based browsing
-- Featured artwork system
-- Recent listings
-- Seller-specific listings
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+---
 
 ## 📄 License
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
-
-For support and questions:
-
-- 📖 Check the [API Documentation](http://localhost:3000/api/v1/docs)
-- 🐛 Report issues on GitHub
-- 💬 Join our community discussions
-
----
-
-**Happy coding! 🎨✨**
