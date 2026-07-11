@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { CustomLoggerService } from './common/logger/logger.service';
 import configuration, { configValidationSchema } from './config/configuration';
@@ -15,13 +14,6 @@ import configuration, { configValidationSchema } from './config/configuration';
         allowUnknown: true,
         abortEarly: true,
       },
-    }),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('mongo.uri'),
-      }),
-      inject: [ConfigService],
     }),
   ],
   controllers: [AppController],

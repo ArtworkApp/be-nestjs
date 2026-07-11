@@ -6,7 +6,7 @@ Before running the application, make sure you have the following installed:
 
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
-- **MongoDB** (v6 or higher)
+- **PostgreSQL** (v14 or higher)
 - **Redis** (v6 or higher) - Optional for caching
 
 ## Quick Start (Development Mode)
@@ -26,15 +26,17 @@ Create a `docker-compose.yml` file in the root directory:
 ```yaml
 version: '3.8'
 services:
-  mongo:
-    image: mongo:7
-    container_name: artwork_mongo
+  postgres:
+    image: postgres:16
+    container_name: artwork_postgres
     environment:
-      MONGO_INITDB_DATABASE: artwork_marketplace
+      POSTGRES_DB: artwork_marketplace
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - '27017:27017'
+      - '5432:5432'
     volumes:
-      - mongo_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -43,7 +45,7 @@ services:
       - '6379:6379'
 
 volumes:
-  mongo_data:
+  postgres_data:
 ```
 
 Then run:
@@ -54,15 +56,15 @@ docker-compose up -d
 
 #### Option B: Local Installation
 
-1. Install MongoDB locally
-2. Start MongoDB on your desired host/port
-3. Set `MONGO_URI` to point to your database (for example `mongodb://localhost:27017/artwork_marketplace`)
+1. Install PostgreSQL locally
+2. Start PostgreSQL on your desired host/port
+3. Set `DATABASE_*` values in `.env` (for example `DATABASE_HOST=localhost`, `DATABASE_PORT=5432`, `DATABASE_NAME=artwork_marketplace`)
 
 ### 3. Environment Configuration
 
 The `.env` file is already configured for development. The current settings are:
 
-- **Database**: mongodb://localhost:27017/artwork_marketplace
+- **Database**: PostgreSQL on localhost:5432
 - **Redis**: localhost:6379 (optional)
 - **Port**: 3000
 - **API Prefix**: api/v1
@@ -206,7 +208,7 @@ npm run format
 For production deployment:
 
 1. Set `NODE_ENV=production` in your environment
-2. Configure `MONGO_URI`
+2. Configure PostgreSQL `DATABASE_*` variables
 3. Set a secure JWT secret
 4. Configure external services (Redis, etc.)
 5. Build the application: `npm run build`
@@ -216,8 +218,8 @@ For production deployment:
 
 ### Database Connection Issues
 
-- Ensure MongoDB is running
-- Check `MONGO_URI` in `.env`
+- Ensure PostgreSQL is running
+- Check `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `DATABASE_NAME` in `.env`
 - Verify the database host and port are reachable
 
 ### Port Already in Use
@@ -232,7 +234,7 @@ For production deployment:
 
 ## Next Steps
 
-1. **Database Schema**: Define and implement MongoDB schema models
+1. **Database Schema**: Define and implement PostgreSQL entities/migrations
 2. **File Upload**: Configure a file storage service for image storage
 3. **Email Service**: Configure SendGrid or similar for email notifications
 4. **Payment Processing**: Integrate Stripe for transactions
