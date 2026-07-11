@@ -10,7 +10,7 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 # Start database services
-echo "🐘 Starting PostgreSQL and Redis..."
+echo "🍃 Starting MongoDB and Redis..."
 docker-compose up -d
 
 # Wait for services to be ready

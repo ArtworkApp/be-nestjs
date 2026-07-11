@@ -6,7 +6,7 @@ Before running the application, make sure you have the following installed:
 
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
-- **PostgreSQL** (v12 or higher)
+- **PostgreSQL** (v14 or higher)
 - **Redis** (v6 or higher) - Optional for caching
 
 ## Quick Start (Development Mode)
@@ -27,14 +27,14 @@ Create a `docker-compose.yml` file in the root directory:
 version: '3.8'
 services:
   postgres:
-    image: postgres:15
+    image: postgres:16
     container_name: artwork_postgres
     environment:
       POSTGRES_DB: artwork_marketplace
-      POSTGRES_USER: artwork_user
-      POSTGRES_PASSWORD: artwork_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -42,7 +42,7 @@ services:
     image: redis:7-alpine
     container_name: artwork_redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
 
 volumes:
   postgres_data:
@@ -57,15 +57,14 @@ docker-compose up -d
 #### Option B: Local Installation
 
 1. Install PostgreSQL locally
-2. Create a database named `artwork_marketplace`
-3. Create a user `artwork_user` with password `artwork_password`
-4. Grant all privileges to the user on the database
+2. Start PostgreSQL on your desired host/port
+3. Set `DATABASE_*` values in `.env` (for example `DATABASE_HOST=localhost`, `DATABASE_PORT=5432`, `DATABASE_NAME=artwork_marketplace`)
 
 ### 3. Environment Configuration
 
 The `.env` file is already configured for development. The current settings are:
 
-- **Database**: localhost:5432
+- **Database**: PostgreSQL on localhost:5432
 - **Redis**: localhost:6379 (optional)
 - **Port**: 3000
 - **API Prefix**: api/v1
@@ -89,6 +88,7 @@ Once the application is running, you can access the Swagger API documentation at
 **🚀 http://localhost:3000/api/v1/docs**
 
 This interactive documentation includes:
+
 - All available endpoints
 - Request/response schemas
 - Authentication examples
@@ -97,6 +97,7 @@ This interactive documentation includes:
 ## Available Endpoints
 
 ### Authentication (`/api/v1/auth`)
+
 - `POST /register` - Register a new user
 - `POST /login` - Login user
 - `GET /verify-email/:token` - Verify email
@@ -107,6 +108,7 @@ This interactive documentation includes:
 - `GET /profile` - Get current user profile
 
 ### Users (`/api/v1/users`)
+
 - `GET /me/dashboard` - Get user dashboard
 - `GET /me/stats` - Get user statistics
 - `PUT /me/profile` - Update profile
@@ -117,6 +119,7 @@ This interactive documentation includes:
 - `GET /username/:username` - Get user by username
 
 ### Artworks (`/api/v1/artworks`)
+
 - `POST /` - Create artwork listing
 - `GET /search` - Search artworks
 - `GET /featured` - Get featured artworks
@@ -205,31 +208,34 @@ npm run format
 For production deployment:
 
 1. Set `NODE_ENV=production` in your environment
-2. Configure proper database credentials
+2. Configure PostgreSQL `DATABASE_*` variables
 3. Set a secure JWT secret
-4. Configure external services (Redis, S3, etc.)
+4. Configure external services (Redis, etc.)
 5. Build the application: `npm run build`
 6. Start with: `npm run start:prod`
 
 ## Troubleshooting
 
 ### Database Connection Issues
+
 - Ensure PostgreSQL is running
-- Check database credentials in `.env`
-- Verify database exists and user has proper permissions
+- Check `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `DATABASE_NAME` in `.env`
+- Verify the database host and port are reachable
 
 ### Port Already in Use
+
 - Change the `PORT` in `.env` file
 - Or kill the process using the port: `lsof -ti:3000 | xargs kill -9`
 
 ### Redis Connection (Optional)
+
 - Redis is optional for development
 - If you don't have Redis, the app will still work without caching
 
 ## Next Steps
 
-1. **Database Migrations**: Implement TypeORM migrations for production
-2. **File Upload**: Configure AWS S3 or similar for image storage
+1. **Database Schema**: Define and implement PostgreSQL entities/migrations
+2. **File Upload**: Configure a file storage service for image storage
 3. **Email Service**: Configure SendGrid or similar for email notifications
 4. **Payment Processing**: Integrate Stripe for transactions
 5. **Rate Limiting**: Configure Redis for rate limiting in production

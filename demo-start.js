@@ -19,18 +19,14 @@ const env = {
   NODE_ENV: 'development',
   PORT: '3000',
   API_PREFIX: 'api/v1',
-  
-  // Demo database settings (will use SQLite in memory)
-  DATABASE_HOST: 'localhost',
-  DATABASE_PORT: '5432',
-  DATABASE_USERNAME: 'demo',
-  DATABASE_PASSWORD: 'demo',
-  DATABASE_NAME: 'demo',
-  
+
+  // Demo database settings
+  MONGO_URI: 'mongodb://localhost:27017/artwork_marketplace',
+
   // Demo JWT settings
   JWT_SECRET: 'demo-jwt-secret-key-for-development-only',
   JWT_EXPIRES_IN: '7d',
-  
+
   // Optional services (will be ignored in demo mode)
   REDIS_HOST: 'localhost',
   REDIS_PORT: '6379',
@@ -38,17 +34,13 @@ const env = {
   STRIPE_WEBHOOK_SECRET: 'whsec_demo',
   SENDGRID_API_KEY: 'SG.demo',
   FROM_EMAIL: 'demo@example.com',
-  AWS_ACCESS_KEY_ID: 'demo',
-  AWS_SECRET_ACCESS_KEY: 'demo',
-  AWS_REGION: 'us-east-1',
-  AWS_S3_BUCKET: 'demo-bucket',
 };
 
 // Start the NestJS application
 const child = spawn('npm', ['run', 'start:dev'], {
   stdio: 'inherit',
   env: env,
-  shell: true
+  shell: true,
 });
 
 child.on('close', (code) => {

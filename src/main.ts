@@ -30,8 +30,8 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix
-  app.setGlobalPrefix(apiPrefix);
+  // Keep index endpoint on '/' while namespaced routes stay under API prefix.
+  app.setGlobalPrefix(apiPrefix, { exclude: ['/'] });
 
   // CORS configuration
   app.enableCors({
@@ -46,39 +46,23 @@ async function bootstrap() {
   if (configService.get('app.nodeEnv') !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Artwork Marketplace API')
-      .setDescription(
-        'A comprehensive API for the artwork resale marketplace platform. ' +
-        'This API allows users to register, authenticate, list artworks for sale, ' +
-        'search and discover art pieces, and manage their profiles and transactions.'
-      )
+      .setDescription('Configuration-only API mode with minimal endpoints.')
       .setVersion('1.0')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          name: 'JWT',
-          description: 'Enter JWT token',
-          in: 'header',
-        },
-        'JWT-auth',
-      )
-      .addTag('auth', 'Authentication and authorization endpoints')
-      .addTag('users', 'User profile and account management endpoints')
-      .addTag('artworks', 'Artwork listing and management endpoints')
+      .addTag('system', 'System and documentation endpoints')
       .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development server')
       .setContact(
         'API Support',
         'https://github.com/your-repo/artwork-marketplace',
-        'support@artworkmarketplace.com'
+        'support@artworkmarketplace.com',
       )
       .setLicense('MIT', 'https://opensource.org/licenses/MIT')
       .build();
 
     const document = SwaggerModule.createDocument(app, config, {
-      operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+      operationIdFactory: (controllerKey: string, methodKey: string) =>
+        methodKey,
     });
-    
+
     SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
       swaggerOptions: {
         persistAuthorization: true,
@@ -98,7 +82,7 @@ async function bootstrap() {
     });
   }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(
     `🚀 Artwork Marketplace API running on http://localhost:${port}/${apiPrefix}`,
   );

@@ -1,19 +1,18 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: artwork_postgres
+  mongo:
+    image: mongo:7
+    container_name: artwork_mongo
     environment:
-      POSTGRES_DB: artwork_marketplace
-      POSTGRES_USER: artwork_user
-      POSTGRES_PASSWORD: artwork_password
+      MONGO_INITDB_DATABASE: artwork_marketplace
     ports:
-      - "5432:5432"
+      - '27017:27017'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongo_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U artwork_user -d artwork_marketplace"]
+      test:
+        ['CMD', 'mongosh', '--quiet', '--eval', 'db.runCommand({ ping: 1 })']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -22,12 +21,12 @@ services:
     image: redis:7-alpine
     container_name: artwork_redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 30s
       timeout: 10s
       retries: 3
 
 volumes:
-  postgres_data:
+  mongo_data:

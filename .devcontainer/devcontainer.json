@@ -1,0 +1,28 @@
+{
+  "name": "Artwork App - NestJS",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [3000, 6380, 27018],
+  "portsAttributes": {
+    "3000": { "label": "NestJS API" },
+    "6380": { "label": "Redis" },
+    "27018": { "label": "MongoDB" }
+  },
+  "postCreateCommand": "npm install",
+  "postStartCommand": "npm run start:dev",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "firsttris.vscode-jest-runner",
+        "ms-azuretools.vscode-docker",
+        "mongodb.mongodb-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}
