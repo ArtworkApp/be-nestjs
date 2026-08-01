@@ -3,7 +3,7 @@ import * as Joi from 'joi';
 export const configValidationSchema = Joi.object({
   // Database Configuration (AWS Aurora)
   DATABASE_HOST: Joi.string().required(),
-  DATABASE_PORT: Joi.number().default(5432),
+  DATABASE_PORT: Joi.number().default(5433),
   DATABASE_USERNAME: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
@@ -25,7 +25,7 @@ export const configValidationSchema = Joi.object({
   AWS_S3_BUCKET: Joi.string().required(),
 
   // Application
-  PORT: Joi.number().default(3000),
+  PORT: Joi.number().default(3001),
   NODE_ENV: Joi.string()
     .valid('development', 'production', 'test')
     .default('development'),
@@ -37,7 +37,7 @@ export const configValidationSchema = Joi.object({
 export default () => ({
   database: {
     host: process.env.DATABASE_HOST,
-    port: parseInt(process.env.DATABASE_PORT, 10) || 5432,
+    port: parseInt(process.env.DATABASE_PORT, 10) || 5433,
     username: process.env.DATABASE_USERNAME,
     password: process.env.DATABASE_PASSWORD,
     name: process.env.DATABASE_NAME,
@@ -59,7 +59,7 @@ export default () => ({
     bucket: process.env.AWS_S3_BUCKET,
   },
   app: {
-    port: parseInt(process.env.PORT, 10) || 3000,
+    port: parseInt(process.env.PORT, 10) || 3001,
     nodeEnv: process.env.NODE_ENV,
     apiPrefix: process.env.API_PREFIX,
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10),
