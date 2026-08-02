@@ -52,8 +52,8 @@ async function bootstrap() {
       .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development server')
       .setContact(
         'API Support',
-        'https://github.com/your-repo/artwork-marketplace',
-        'support@artworkmarketplace.com',
+        'https://github.com/ArtworkApp/be-nestjs.git',
+        'chan.hyeo.ni.3698@gmail.com',
       )
       .setLicense('MIT', 'https://opensource.org/licenses/MIT')
       .build();
