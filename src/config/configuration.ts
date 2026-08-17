@@ -1,28 +1,29 @@
 import * as Joi from 'joi';
 
 export const configValidationSchema = Joi.object({
-  // Database Configuration (AWS Aurora)
-  DATABASE_HOST: Joi.string().required(),
-  DATABASE_PORT: Joi.number().default(5433),
-  DATABASE_USERNAME: Joi.string().required(),
-  DATABASE_PASSWORD: Joi.string().required(),
-  DATABASE_NAME: Joi.string().required(),
+  // Database Configuration
+  DATABASE_URL: Joi.string().required(),
+  DATABASE_HOST: Joi.string().default('localhost'),
+  DATABASE_PORT: Joi.number().default(5432),
+  DATABASE_USERNAME: Joi.string().default('postgres'),
+  DATABASE_PASSWORD: Joi.string().default('postgres'),
+  DATABASE_NAME: Joi.string().default('artwork_db'),
 
   // JWT Configuration
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().default('7d'),
 
   // Stripe Configuration
-  STRIPE_SECRET_KEY: Joi.string().required(),
-  STRIPE_WEBHOOK_SECRET: Joi.string().required(),
+  STRIPE_SECRET_KEY: Joi.string().default('sk_test_placeholder'),
+  STRIPE_WEBHOOK_SECRET: Joi.string().default('whsec_placeholder'),
 
   // SendGrid Configuration
-  SENDGRID_API_KEY: Joi.string().required(),
-  FROM_EMAIL: Joi.string().email().required(),
+  SENDGRID_API_KEY: Joi.string().default('SG.placeholder'),
+  FROM_EMAIL: Joi.string().email().default('dev@example.com'),
 
   // AWS S3 Configuration
   AWS_REGION: Joi.string().default('us-east-1'),
-  AWS_S3_BUCKET: Joi.string().required(),
+  AWS_S3_BUCKET: Joi.string().default('artwork-local-bucket'),
 
   // Application
   PORT: Joi.number().default(3001),
@@ -31,7 +32,7 @@ export const configValidationSchema = Joi.object({
     .default('development'),
   API_PREFIX: Joi.string().default('api/v1'),
   MAX_FILE_SIZE: Joi.number().default(10485760),
-  ALLOWED_IMAGE_TYPES: Joi.string().required(),
+  ALLOWED_IMAGE_TYPES: Joi.string().default('image/jpeg,image/png,image/webp'),
 });
 
 export default () => ({

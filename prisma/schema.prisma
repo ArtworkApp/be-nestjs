@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum ArtworkStatus {
+  AVAILABLE
+  SOLD
+  RESERVED
+  DRAFT
+}
+
+// ─── Artist ───────────────────────────────────────────────────────────────────
+
+model Artist {
+  id         BigInt   @id @default(autoincrement())
+  name       String
+  country    String?
+  birthYear  Int?     @map("birth_year")
+  deathYear  Int?     @map("death_year")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  artworks ArtworkArtist[]
+
+  @@index([name])
+  @@index([country])
+  @@map("artist")
+}
+
+// ─── Artwork ──────────────────────────────────────────────────────────────────
+
+model Artwork {
+  id        BigInt        @id @default(autoincrement())
+  title     String
+  yearMade  Int?          @map("year_made")
+  price     Decimal?      @db.Decimal(12, 2)
+  currency  String?
+  width     Decimal?      @db.Decimal(10, 2)
+  height    Decimal?      @db.Decimal(10, 2)
+  depth     Decimal?      @db.Decimal(10, 2)
+  status    ArtworkStatus @default(DRAFT)
+  featured  Boolean       @default(false)
+  details   Json?
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  artists      ArtworkArtist[]
+  artworkTypes ArtworkArtworkType[]
+  materials    ArtworkMaterial[]
+
+  @@index([status])
+  @@index([price])
+  @@index([featured])
+  @@index([yearMade])
+  @@map("artwork")
+}
+
+// ─── Artwork Type ─────────────────────────────────────────────────────────────
+
+model ArtworkType {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  materials    Material[]
+  artworks     ArtworkArtworkType[]
+
+  @@map("artwork_type")
+}
+
+// ─── Material ─────────────────────────────────────────────────────────────────
+
+model Material {
+  id            BigInt      @id @default(autoincrement())
+  artworkTypeId BigInt      @map("artwork_type_id")
+  name          String
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  artworkType ArtworkType       @relation(fields: [artworkTypeId], references: [id])
+  artworks    ArtworkMaterial[]
+
+  @@unique([artworkTypeId, name])
+  @@map("material")
+}
+
+// ─── Junction: Artwork ↔ Artist ───────────────────────────────────────────────
+
+model ArtworkArtist {
+  artworkId BigInt @map("artwork_id")
+  artistId  BigInt @map("artist_id")
+
+  artwork Artwork @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  artist  Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@id([artworkId, artistId])
+  @@index([artworkId])
+  @@index([artistId])
+  @@map("artwork_artist")
+}
+
+// ─── Junction: Artwork ↔ ArtworkType ─────────────────────────────────────────
+
+model ArtworkArtworkType {
+  artworkId     BigInt @map("artwork_id")
+  artworkTypeId BigInt @map("artwork_type_id")
+
+  artwork     Artwork     @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  artworkType ArtworkType @relation(fields: [artworkTypeId], references: [id], onDelete: Cascade)
+
+  @@id([artworkId, artworkTypeId])
+  @@index([artworkId])
+  @@index([artworkTypeId])
+  @@map("artwork_artwork_type")
+}
+
+// ─── Junction: Artwork ↔ Material ────────────────────────────────────────────
+
+model ArtworkMaterial {
+  artworkId  BigInt @map("artwork_id")
+  materialId BigInt @map("material_id")
+
+  artwork  Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([artworkId, materialId])
+  @@index([artworkId])
+  @@index([materialId])
+  @@map("artwork_material")
+}
