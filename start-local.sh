@@ -1,33 +1,54 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Reusable local startup for environments without Docker.
-# - Ensures required env vars are present
-# - Starts Nest in watch mode
+# Local standalone startup (no Docker required).
+# Requires a locally running PostgreSQL instance.
+# All env vars can be overridden by exporting them before running this script.
 
 export NODE_ENV="${NODE_ENV:-development}"
-export PORT="${PORT:-3000}"
+export PORT="${PORT:-3001}"
 export API_PREFIX="${API_PREFIX:-api/v1}"
 
-export MONGO_URI="${MONGO_URI:-mongodb://localhost:27017/artwork_marketplace}"
+# ── Database ──────────────────────────────────────────────────────────────────
+export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/artwork_db}"
+export DATABASE_HOST="${DATABASE_HOST:-localhost}"
+export DATABASE_PORT="${DATABASE_PORT:-5432}"
+export DATABASE_USERNAME="${DATABASE_USERNAME:-postgres}"
+export DATABASE_PASSWORD="${DATABASE_PASSWORD:-postgres}"
+export DATABASE_NAME="${DATABASE_NAME:-artwork_db}"
 
-export REDIS_HOST="${REDIS_HOST:-localhost}"
-export REDIS_PORT="${REDIS_PORT:-6379}"
-
-export JWT_SECRET="${JWT_SECRET:-dev-jwt-secret}"
+# ── Auth ──────────────────────────────────────────────────────────────────────
+export JWT_SECRET="${JWT_SECRET:-dev-jwt-secret-change-me}"
 export JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-7d}"
 
-export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-sk_test_demo}"
-export STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-whsec_demo}"
-export SENDGRID_API_KEY="${SENDGRID_API_KEY:-SG.demo}"
-export FROM_EMAIL="${FROM_EMAIL:-demo@example.com}"
+# ── Third-party placeholders (not needed for local DB work) ───────────────────
+export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-sk_test_placeholder}"
+export STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}"
+export SENDGRID_API_KEY="${SENDGRID_API_KEY:-SG.placeholder}"
+export FROM_EMAIL="${FROM_EMAIL:-dev@example.com}"
+export AWS_REGION="${AWS_REGION:-us-east-1}"
+export AWS_S3_BUCKET="${AWS_S3_BUCKET:-artwork-local-bucket}"
 
-echo "Starting Artwork Marketplace API local dev mode"
+# ── File uploads ──────────────────────────────────────────────────────────────
+export MAX_FILE_SIZE="${MAX_FILE_SIZE:-10485760}"
+export ALLOWED_IMAGE_TYPES="${ALLOWED_IMAGE_TYPES:-image/jpeg,image/png,image/webp}"
 
-echo "Installing dependencies if needed..."
+echo "🚀 Starting Artwork Marketplace API in local standalone mode"
+echo "   DB: ${DATABASE_URL}"
+
+echo "📦 Installing dependencies if needed..."
 if [[ ! -d node_modules ]]; then
   npm install --legacy-peer-deps
 fi
 
-echo "Starting NestJS API on http://localhost:${PORT}/${API_PREFIX}"
+echo "🔄 Generating Prisma client..."
+npx prisma generate
+
+echo "🗄️  Running database migrations..."
+npx prisma migrate deploy
+
+echo "🌱 Seeding database..."
+npm run db:seed || echo "  (seed skipped — already seeded or DB not ready)"
+
+echo "▶️  Starting NestJS on http://localhost:${PORT}/${API_PREFIX}"
 exec npm run start:dev
