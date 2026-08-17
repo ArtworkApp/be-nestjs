@@ -9,6 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "myapp": "bash ./start-local.sh",
+    "start:local": "npm run start:dev",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -21,8 +22,12 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:local": "bash -lc 'set -a; source .env.local; set +a; npx prisma migrate dev'",
+    "prisma:migrate:deploy:local": "bash -lc 'set -a; source .env.local; set +a; npx prisma migrate deploy'",
+    "prisma:migrate:status:local": "bash -lc 'set -a; source .env.local; set +a; npx prisma migrate status'",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:seed:local": "bash -lc 'set -a; source .env.local; set +a; npm run db:seed'",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {

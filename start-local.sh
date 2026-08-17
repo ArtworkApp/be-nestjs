@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Local standalone startup (no Docker required).
-# Requires a locally running PostgreSQL instance.
+# Requires PostgreSQL from development-environment Docker compose.
 # All env vars can be overridden by exporting them before running this script.
 
 export NODE_ENV="${NODE_ENV:-development}"
@@ -10,11 +10,11 @@ export PORT="${PORT:-3001}"
 export API_PREFIX="${API_PREFIX:-api/v1}"
 
 # ── Database ──────────────────────────────────────────────────────────────────
-export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/artwork_db}"
-export DATABASE_HOST="${DATABASE_HOST:-localhost}"
-export DATABASE_PORT="${DATABASE_PORT:-5432}"
-export DATABASE_USERNAME="${DATABASE_USERNAME:-postgres}"
-export DATABASE_PASSWORD="${DATABASE_PASSWORD:-postgres}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://artwork_db_user:artwork_db_password@127.0.0.1:5433/artwork_db}"
+export DATABASE_HOST="${DATABASE_HOST:-127.0.0.1}"
+export DATABASE_PORT="${DATABASE_PORT:-5433}"
+export DATABASE_USERNAME="${DATABASE_USERNAME:-artwork_db_user}"
+export DATABASE_PASSWORD="${DATABASE_PASSWORD:-artwork_db_password}"
 export DATABASE_NAME="${DATABASE_NAME:-artwork_db}"
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
