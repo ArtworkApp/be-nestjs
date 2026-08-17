@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from './prisma.service';
 
 // Mock driver dependencies so PrismaClient constructor doesn't need a real DB
-jest.mock('pg', () => ({ default: { Pool: jest.fn().mockReturnValue({}) } }));
+jest.mock('pg', () => ({ Pool: jest.fn().mockReturnValue({}) }));
 jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn().mockReturnValue({}) }));
 jest.mock('@prisma/client', () => {
   class MockPrismaClient {
