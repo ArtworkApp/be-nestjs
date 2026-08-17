@@ -10,10 +10,15 @@ services:
     ports:
       - "3000:3000"
     environment:
+      DATABASE_URL: postgresql://artwork_db_user:artwork_db_password@postgres:5432/artwork_db
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: artwork_db_user
+      DATABASE_PASSWORD: artwork_db_password
+      DATABASE_NAME: artwork_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      MONGO_URI: mongodb://mongo:27017/artwork_marketplace
       JWT_SECRET: dev-secret-key-change-in-production
       JWT_EXPIRES_IN: 7d
       STRIPE_SECRET_KEY: ""
@@ -24,10 +29,26 @@ services:
       NODE_ENV: development
       API_PREFIX: api/v1
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
-      mongo:
-        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: artwork_db_user
+      POSTGRES_PASSWORD: artwork_db_password
+      POSTGRES_DB: artwork_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artwork_db_user -d artwork_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -39,13 +60,6 @@ services:
       timeout: 5s
       retries: 5
 
-  mongo:
-    image: mongo:7
-    ports:
-      - "27018:27017"
-    volumes:
-      - mongodata:/data/db
-
 volumes:
   node_modules:
-  mongodata:
+  pgdata:
