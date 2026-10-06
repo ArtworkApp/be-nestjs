@@ -8,6 +8,7 @@ describe('ArtworksService', () => {
     artwork: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
+      count: jest.Mock;
     };
   };
 
@@ -16,12 +17,13 @@ describe('ArtworksService', () => {
       artwork: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        count: jest.fn(),
       },
     };
     service = new ArtworksService(prisma as unknown as PrismaService);
   });
 
-  it('filters, sorts, and paginates public artworks', async () => {
+  it('filters public artworks to AVAILABLE and preserves the existing filters', async () => {
     prisma.artwork.findMany.mockResolvedValue([
       {
         id: 2n,
@@ -41,29 +43,12 @@ describe('ArtworksService', () => {
         artworkTypes: [{ artworkType: { id: 3n, name: 'Painting' } }],
         materials: [{ material: { id: 11n, name: 'Oil' } }],
       },
-      {
-        id: 1n,
-        title: 'First',
-        yearMade: 1900,
-        price: '200.00',
-        currency: 'USD',
-        width: '10.00',
-        height: '20.00',
-        depth: '2.00',
-        status: 'AVAILABLE',
-        featured: false,
-        details: { foo: 'baz' },
-        createdAt: new Date('2024-01-03'),
-        updatedAt: new Date('2024-01-04'),
-        artists: [{ artist: { id: 8n, name: 'Monet', country: 'France' } }],
-        artworkTypes: [{ artworkType: { id: 3n, name: 'Painting' } }],
-        materials: [{ material: { id: 10n, name: 'Acrylic' } }],
-      },
     ]);
+    prisma.artwork.count.mockResolvedValue(1);
 
-    const result = await service.getArtworks({
+    await service.getArtworks({
       page: 1,
-      limit: 1,
+      limit: 10,
       artistId: 7,
       artworkTypeId: 3,
       materialIds: '11,10',
@@ -77,35 +62,115 @@ describe('ArtworksService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           AND: expect.arrayContaining([
-            { status: { not: 'DRAFT' } },
+            { status: { equals: 'AVAILABLE' } },
             { artists: { some: { artistId: 7n } } },
             { artworkTypes: { some: { artworkTypeId: 3n } } },
             { materials: { some: { materialId: { in: [10n, 11n] } } } },
+            { yearMade: { gte: 1900, lte: 2000 } },
+            {
+              artists: {
+                some: {
+                  artist: {
+                    country: {
+                      contains: 'France',
+                      mode: 'insensitive',
+                    },
+                  },
+                },
+              },
+            },
           ]),
         }),
       }),
     );
+    expect(prisma.artwork.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ status: { equals: 'AVAILABLE' } }]),
+        }),
+      }),
+    );
+  });
 
-    expect(result.data).toEqual([
-      {
-        id: '2',
-        title: 'Second',
-        yearMade: 1970,
-        price: 100,
-        currency: 'USD',
-        width: 20,
-        height: 30,
-        depth: 5,
-        status: 'AVAILABLE',
-        featured: true,
-        details: { foo: 'bar' },
-        artist: [{ id: '7', name: 'Cézanne', country: 'France' }],
-        artworkType: [{ id: '3', name: 'Painting' }],
-        material: [{ id: '11', name: 'Oil' }],
-        createdAt: new Date('2024-01-01'),
-        updatedAt: new Date('2024-01-02'),
-      },
-    ]);
+  it.each([
+    ['year_asc', [{ yearMade: 'asc' }, { id: 'asc' }]],
+    ['year_desc', [{ yearMade: 'desc' }, { id: 'desc' }]],
+    ['artist_asc', [{ artists: { _count: 'asc' } }]],
+    ['artist_desc', [{ artists: { _count: 'desc' } }]],
+    ['price_asc', [{ price: 'asc' }, { id: 'asc' }]],
+    ['price_desc', [{ price: 'desc' }, { id: 'desc' }]],
+  ])('uses Prisma orderBy for %s sort', async (sort, expectedOrderBy) => {
+    prisma.artwork.findMany.mockResolvedValue([]);
+    prisma.artwork.count.mockResolvedValue(0);
+
+    await service.getArtworks({ page: 1, limit: 21, sort } as any);
+
+    expect(prisma.artwork.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: expectedOrderBy }),
+    );
+  });
+
+  it('uses Prisma skip/take and returns pagination metadata', async () => {
+    const artwork = {
+      id: 2n,
+      title: 'Second',
+      yearMade: 1970,
+      price: '100.00',
+      currency: 'USD',
+      width: '20.00',
+      height: '30.00',
+      depth: '5.00',
+      status: 'AVAILABLE',
+      featured: true,
+      details: { foo: 'bar' },
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-02'),
+      artists: [],
+      artworkTypes: [],
+      materials: [],
+    };
+
+    prisma.artwork.findMany.mockResolvedValue([artwork]);
+    prisma.artwork.count.mockResolvedValue(7);
+
+    const result = await service.getArtworks({ page: 2, limit: 2, sort: 'year_desc' } as any);
+
+    expect(prisma.artwork.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 2,
+        take: 2,
+        orderBy: [{ yearMade: 'desc' }, { id: 'desc' }],
+      }),
+    );
+    expect(prisma.artwork.count).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.any(Object) }),
+    );
+    expect(result).toMatchObject({
+      page: 2,
+      limit: 2,
+      total: 7,
+      totalPages: 4,
+      data: [
+        {
+          id: '2',
+          title: 'Second',
+          yearMade: 1970,
+          price: 100,
+          currency: 'USD',
+          width: 20,
+          height: 30,
+          depth: 5,
+          status: 'AVAILABLE',
+          featured: true,
+          details: { foo: 'bar' },
+          artist: [],
+          artworkType: [],
+          material: [],
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-02'),
+        },
+      ],
+    });
   });
 
   it('returns a serialized artwork by id', async () => {

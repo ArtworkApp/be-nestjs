@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ArtworkStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { GetArtworksQueryDto } from './dto/get-artworks-query.dto';
 
@@ -14,7 +14,7 @@ export class ArtworksService {
 
     const materialIds = this.parseMaterialIds(query.materialIds);
     const filters: Prisma.ArtworkWhereInput[] = [
-      { status: { not: 'DRAFT' } },
+      { status: { equals: ArtworkStatus.AVAILABLE } },
       ...(query.artistId ? [{ artists: { some: { artistId: BigInt(query.artistId) } } }] : []),
       ...(query.artworkTypeId
         ? [{ artworkTypes: { some: { artworkTypeId: BigInt(query.artworkTypeId) } } }]
@@ -56,21 +56,30 @@ export class ArtworksService {
     const where: Prisma.ArtworkWhereInput =
       filters.length === 1 ? filters[0] : { AND: filters };
 
-    const artworks = await this.prisma.artwork.findMany({
-      where,
-      include: {
-        artists: { include: { artist: true } },
-        artworkTypes: { include: { artworkType: true } },
-        materials: { include: { material: true } },
-      },
-    });
+    const orderBy = this.getOrderBy(query.sort);
+    const [artworks, total] = await Promise.all([
+      this.prisma.artwork.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          artists: { include: { artist: true } },
+          artworkTypes: { include: { artworkType: true } },
+          materials: { include: { material: true } },
+        },
+      }),
+      this.prisma.artwork.count({ where }),
+    ]);
 
-    const sorted = this.sortArtworks(artworks, query.sort);
-    const total = sorted.length;
-    const paginated = sorted.slice(skip, skip + limit);
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
 
     return {
-      data: paginated.map((artwork) => this.serializeArtwork(artwork)),
+      data: artworks.map((artwork) => this.serializeArtwork(artwork)),
+      page,
+      limit,
+      total,
+      totalPages,
     };
   }
 
@@ -106,41 +115,23 @@ export class ArtworksService {
       .map((value) => value.toString());
   }
 
-  private sortArtworks(artworks: any[], sort?: string) {
-    const sorted = [...artworks];
-    const sortKey = sort ?? 'year_desc';
-
-    sorted.sort((left, right) => {
-      const leftArtistName = this.getPrimaryArtistName(left);
-      const rightArtistName = this.getPrimaryArtistName(right);
-
-      switch (sortKey) {
-        case 'year_asc':
-          return (left.yearMade ?? Number.MAX_SAFE_INTEGER) - (right.yearMade ?? Number.MAX_SAFE_INTEGER);
-        case 'year_desc':
-          return (right.yearMade ?? Number.MIN_SAFE_INTEGER) - (left.yearMade ?? Number.MIN_SAFE_INTEGER);
-        case 'artist_asc':
-          return leftArtistName.localeCompare(rightArtistName, 'en', { sensitivity: 'base' });
-        case 'artist_desc':
-          return rightArtistName.localeCompare(leftArtistName, 'en', { sensitivity: 'base' });
-        case 'price_asc':
-          return Number(left.price ?? 0) - Number(right.price ?? 0);
-        case 'price_desc':
-          return Number(right.price ?? 0) - Number(left.price ?? 0);
-        default:
-          return (right.yearMade ?? Number.MIN_SAFE_INTEGER) - (left.yearMade ?? Number.MIN_SAFE_INTEGER);
-      }
-    });
-
-    return sorted;
-  }
-
-  private getPrimaryArtistName(artwork: any): string {
-    return (
-      artwork.artists?.[0]?.artist?.name ??
-      artwork.artists?.find((entry: any) => entry.artist)?.artist?.name ??
-      ''
-    );
+  private getOrderBy(sort?: string): Prisma.ArtworkOrderByWithRelationInput[] {
+    switch (sort ?? 'year_desc') {
+      case 'year_asc':
+        return [{ yearMade: 'asc' }, { id: 'asc' }];
+      case 'year_desc':
+        return [{ yearMade: 'desc' }, { id: 'desc' }];
+      case 'artist_asc':
+        return [{ artists: { _count: 'asc' } } as Prisma.ArtworkOrderByWithRelationInput];
+      case 'artist_desc':
+        return [{ artists: { _count: 'desc' } } as Prisma.ArtworkOrderByWithRelationInput];
+      case 'price_asc':
+        return [{ price: 'asc' }, { id: 'asc' }];
+      case 'price_desc':
+        return [{ price: 'desc' }, { id: 'desc' }];
+      default:
+        return [{ yearMade: 'desc' }, { id: 'desc' }];
+    }
   }
 
   private serializeArtwork(artwork: any) {
