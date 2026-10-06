@@ -48,6 +48,6 @@ export class GetArtworksQueryDto {
   country?: string;
 
   @IsOptional()
-  @IsIn(['year_asc', 'year_desc', 'artist_asc', 'artist_desc', 'price_asc', 'price_desc'])
+  @IsIn(['year_asc', 'year_desc', 'price_asc', 'price_desc'])
   sort?: string;
 }

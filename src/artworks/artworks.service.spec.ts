@@ -95,8 +95,6 @@ describe('ArtworksService', () => {
   it.each([
     ['year_asc', [{ yearMade: 'asc' }, { id: 'asc' }]],
     ['year_desc', [{ yearMade: 'desc' }, { id: 'desc' }]],
-    ['artist_asc', [{ artists: { _count: 'asc' } }]],
-    ['artist_desc', [{ artists: { _count: 'desc' } }]],
     ['price_asc', [{ price: 'asc' }, { id: 'asc' }]],
     ['price_desc', [{ price: 'desc' }, { id: 'desc' }]],
   ])('uses Prisma orderBy for %s sort', async (sort, expectedOrderBy) => {
@@ -146,10 +144,6 @@ describe('ArtworksService', () => {
       expect.objectContaining({ where: expect.any(Object) }),
     );
     expect(result).toMatchObject({
-      page: 2,
-      limit: 2,
-      total: 7,
-      totalPages: 4,
       data: [
         {
           id: '2',
@@ -170,6 +164,12 @@ describe('ArtworksService', () => {
           updatedAt: new Date('2024-01-02'),
         },
       ],
+      pagination: {
+        page: 2,
+        limit: 2,
+        total: 7,
+        totalPages: 4,
+      },
     });
   });
 

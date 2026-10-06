@@ -76,10 +76,12 @@ export class ArtworksService {
 
     return {
       data: artworks.map((artwork) => this.serializeArtwork(artwork)),
-      page,
-      limit,
-      total,
-      totalPages,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
     };
   }
 
@@ -121,10 +123,6 @@ export class ArtworksService {
         return [{ yearMade: 'asc' }, { id: 'asc' }];
       case 'year_desc':
         return [{ yearMade: 'desc' }, { id: 'desc' }];
-      case 'artist_asc':
-        return [{ artists: { _count: 'asc' } } as Prisma.ArtworkOrderByWithRelationInput];
-      case 'artist_desc':
-        return [{ artists: { _count: 'desc' } } as Prisma.ArtworkOrderByWithRelationInput];
       case 'price_asc':
         return [{ price: 'asc' }, { id: 'asc' }];
       case 'price_desc':
