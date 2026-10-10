@@ -49,7 +49,7 @@ async function bootstrap() {
       .setDescription('Configuration-only API mode with minimal endpoints.')
       .setVersion('1.0')
       .addTag('system', 'System and documentation endpoints')
-      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development server')
+      .addServer(`http://localhost:${port}`, 'Development server')
       .setContact(
         'API Support',
         'https://github.com/ArtworkApp/be-nestjs.git',
