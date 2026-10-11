@@ -72,6 +72,25 @@ This will start the local API server at `http://localhost:3000` with:
 - 📚 **Swagger Documentation**: http://localhost:3000/api/v1/docs
 - 🌐 **API Base URL**: http://localhost:3000/api/v1
 
+### ArtworkApp Dev Container (PostgreSQL + MinIO)
+
+When running the full ArtworkApp suite in the Dev Container, the backend connects to MinIO through the Compose service hostname. Set this in `be-nestjs/.env.local`:
+
+```dotenv
+OBJECT_STORAGE_ENDPOINT=http://minio:9000
+```
+
+Port `9000` is MinIO's S3 API, used by NestJS to upload and stream image files. Port `9001` is the MinIO web console, opened from the host browser at <http://localhost:9001>.
+
+After PostgreSQL and MinIO are running, seed the local catalog from `/workspace/be-nestjs`:
+
+```bash
+npm run prisma:migrate:local
+ALLOW_DEV_SEED=true npm run db:seed:local
+```
+
+To verify image delivery, call `GET http://localhost:3001/api/v1/artworks` and copy an artwork's `id` and `primaryImage.id` from the response. Open `http://localhost:3001/api/v1/artworks/{id}/images/{imageId}` in the host browser. A successful response displays the seeded PNG image; its response content type is `image/png`.
+
 ### Option 2: Serverless AWS Cloud Deployment (Production)
 
 This project uses the **Serverless Framework** to automatically package, build, and provision your entire AWS architecture via code.
