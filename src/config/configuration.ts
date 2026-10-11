@@ -24,7 +24,7 @@ export const configValidationSchema = Joi.object({
   // AWS S3 Configuration
   AWS_REGION: Joi.string().default('us-east-1'),
   AWS_S3_BUCKET: Joi.string().default('artwork-local-bucket'),
-  OBJECT_STORAGE_ENDPOINT: Joi.string().default('http://127.0.0.1:9000'),
+  OBJECT_STORAGE_ENDPOINT: Joi.string().default('http://minio:9000'),
   OBJECT_STORAGE_ACCESS_KEY: Joi.string().default('minio_root_username'),
   OBJECT_STORAGE_SECRET_KEY: Joi.string().default('minio_root_secret_password'),
   OBJECT_STORAGE_BUCKET: Joi.string().default('artwork-images'),

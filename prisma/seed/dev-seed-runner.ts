@@ -66,7 +66,7 @@ function createStorageService(nodeEnv?: string): ObjectStorageService {
     },
     storage: {
       region: process.env.AWS_REGION ?? 'us-east-1',
-      endpoint: process.env.OBJECT_STORAGE_ENDPOINT ?? 'http://127.0.0.1:9000',
+      endpoint: process.env.OBJECT_STORAGE_ENDPOINT ?? 'http://minio:9000',
       accessKey: process.env.OBJECT_STORAGE_ACCESS_KEY ?? 'minio_root_username',
       secretKey:
         process.env.OBJECT_STORAGE_SECRET_KEY ?? 'minio_root_secret_password',
