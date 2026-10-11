@@ -1,4 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Readable } from 'stream';
 import { ArtworksService } from './artworks.service';
 import { PrismaService } from '../database/prisma.service';
 
@@ -10,7 +12,12 @@ describe('ArtworksService', () => {
       findUnique: jest.Mock;
       count: jest.Mock;
     };
+    artworkImage: {
+      findUnique: jest.Mock;
+    };
   };
+  let objectStorage: { getObjectStream: jest.Mock };
+  let configService: { getOrThrow: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -19,8 +26,17 @@ describe('ArtworksService', () => {
         findUnique: jest.fn(),
         count: jest.fn(),
       },
+      artworkImage: {
+        findUnique: jest.fn(),
+      },
     };
-    service = new ArtworksService(prisma as unknown as PrismaService);
+    objectStorage = { getObjectStream: jest.fn() };
+    configService = { getOrThrow: jest.fn().mockReturnValue('api/v1') };
+    service = new ArtworksService(
+      prisma as unknown as PrismaService,
+      objectStorage as any,
+      configService as unknown as ConfigService,
+    );
   });
 
   it('filters public artworks to AVAILABLE and preserves the existing filters', async () => {
@@ -42,6 +58,18 @@ describe('ArtworksService', () => {
         artists: [{ artist: { id: 7n, name: 'Cézanne', country: 'France' } }],
         artworkTypes: [{ artworkType: { id: 3n, name: 'Painting' } }],
         materials: [{ material: { id: 11n, name: 'Oil' } }],
+        images: [
+          {
+            id: 101n,
+            artworkId: 2n,
+            objectKey: 'dev-seed/v1/demo-2/primary.png',
+            originalFilename: 'demo-2-primary.png',
+            mimeType: 'image/png',
+            altText: 'Sample/demo image',
+            sortOrder: 0,
+            isPrimary: true,
+          },
+        ],
       },
     ]);
     prisma.artwork.count.mockResolvedValue(1);
@@ -131,7 +159,11 @@ describe('ArtworksService', () => {
     prisma.artwork.findMany.mockResolvedValue([artwork]);
     prisma.artwork.count.mockResolvedValue(7);
 
-    const result = await service.getArtworks({ page: 2, limit: 2, sort: 'year_desc' } as any);
+    const result = await service.getArtworks({
+      page: 2,
+      limit: 2,
+      sort: 'year_desc',
+    } as any);
 
     expect(prisma.artwork.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -157,6 +189,7 @@ describe('ArtworksService', () => {
           status: 'AVAILABLE',
           featured: true,
           details: { foo: 'bar' },
+          primaryImage: null,
           artist: [],
           artworkType: [],
           material: [],
@@ -191,6 +224,28 @@ describe('ArtworksService', () => {
       artists: [{ artist: { id: 5n, name: 'Picasso', country: 'Spain' } }],
       artworkTypes: [{ artworkType: { id: 1n, name: 'Painting' } }],
       materials: [{ material: { id: 2n, name: 'Oil' } }],
+      images: [
+        {
+          id: 301n,
+          artworkId: 9n,
+          objectKey: 'dev-seed/v1/demo-9/primary.png',
+          originalFilename: 'demo-9-primary.png',
+          mimeType: 'image/png',
+          altText: 'Primary sample image',
+          sortOrder: 0,
+          isPrimary: true,
+        },
+        {
+          id: 302n,
+          artworkId: 9n,
+          objectKey: 'dev-seed/v1/demo-9/detail.png',
+          originalFilename: 'demo-9-detail.png',
+          mimeType: 'image/png',
+          altText: 'Detail sample image',
+          sortOrder: 1,
+          isPrimary: false,
+        },
+      ],
     });
 
     await expect(service.getArtwork('9')).resolves.toEqual({
@@ -205,6 +260,35 @@ describe('ArtworksService', () => {
       status: 'SOLD',
       featured: false,
       details: { sold: true },
+      primaryImage: {
+        id: '301',
+        url: '/api/v1/artworks/9/images/301',
+        altText: 'Primary sample image',
+        mimeType: 'image/png',
+        isPrimary: true,
+        sortOrder: 0,
+        originalFilename: 'demo-9-primary.png',
+      },
+      images: [
+        {
+          id: '301',
+          url: '/api/v1/artworks/9/images/301',
+          altText: 'Primary sample image',
+          mimeType: 'image/png',
+          isPrimary: true,
+          sortOrder: 0,
+          originalFilename: 'demo-9-primary.png',
+        },
+        {
+          id: '302',
+          url: '/api/v1/artworks/9/images/302',
+          altText: 'Detail sample image',
+          mimeType: 'image/png',
+          isPrimary: false,
+          sortOrder: 1,
+          originalFilename: 'demo-9-detail.png',
+        },
+      ],
       artist: [{ id: '5', name: 'Picasso', country: 'Spain' }],
       artworkType: [{ id: '1', name: 'Painting' }],
       material: [{ id: '2', name: 'Oil' }],
@@ -217,5 +301,60 @@ describe('ArtworksService', () => {
     prisma.artwork.findUnique.mockResolvedValue(null);
 
     await expect(service.getArtwork('999')).rejects.toThrow(NotFoundException);
+  });
+
+  it('streams image object when artwork image exists', async () => {
+    const setHeader = jest.fn();
+    const onMock = jest.fn();
+    const response = {
+      setHeader,
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn(),
+      on: onMock,
+      destroy: jest.fn(),
+    } as any;
+    const stream = new Readable({ read() {} });
+    const pipe = jest.fn();
+    const onStream = jest.fn();
+    (stream as any).pipe = pipe;
+    (stream as any).on = onStream;
+
+    prisma.artworkImage.findUnique.mockResolvedValue({
+      id: 101n,
+      artworkId: 2n,
+      objectKey: 'dev-seed/v1/demo-2/primary.png',
+      mimeType: 'image/png',
+    });
+    objectStorage.getObjectStream.mockResolvedValue({
+      stream,
+      contentType: 'image/png',
+      contentLength: 42,
+    });
+
+    await service.streamArtworkImage({
+      artworkId: '2',
+      imageId: '101',
+      response,
+    });
+
+    expect(setHeader).toHaveBeenCalledWith('Content-Type', 'image/png');
+    expect(setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'public, max-age=86400',
+    );
+    expect(setHeader).toHaveBeenCalledWith('Content-Length', '42');
+    expect(pipe).toHaveBeenCalledWith(response);
+  });
+
+  it('throws when image does not exist for artwork', async () => {
+    prisma.artworkImage.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.streamArtworkImage({
+        artworkId: '2',
+        imageId: '101',
+        response: {} as any,
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

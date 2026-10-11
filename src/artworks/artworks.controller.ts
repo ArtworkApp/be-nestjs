@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { GetArtworksQueryDto } from './dto/get-artworks-query.dto';
 import { ArtworksService } from './artworks.service';
 
@@ -14,5 +15,18 @@ export class ArtworksController {
   @Get(':id')
   async getArtwork(@Param('id') id: string) {
     return this.artworksService.getArtwork(id);
+  }
+
+  @Get(':id/images/:imageId')
+  async getArtworkImage(
+    @Param('id') artworkId: string,
+    @Param('imageId') imageId: string,
+    @Res() response: Response,
+  ) {
+    await this.artworksService.streamArtworkImage({
+      artworkId,
+      imageId,
+      response,
+    });
   }
 }

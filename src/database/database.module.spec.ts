@@ -3,12 +3,16 @@ import { DatabaseModule } from './database.module';
 import { PrismaService } from './prisma.service';
 
 jest.mock('pg', () => ({ Pool: jest.fn().mockReturnValue({}) }));
-jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn().mockReturnValue({}) }));
+jest.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: jest.fn().mockReturnValue({}),
+}));
 jest.mock('@prisma/client', () => {
   class MockPrismaClient {
     $connect = jest.fn().mockResolvedValue(undefined);
     $disconnect = jest.fn().mockResolvedValue(undefined);
-    constructor(_opts?: unknown) {}
+    constructor(opts?: unknown) {
+      void opts;
+    }
   }
   return { PrismaClient: MockPrismaClient };
 });

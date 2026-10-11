@@ -57,12 +57,35 @@ model Artwork {
   artists      ArtworkArtist[]
   artworkTypes ArtworkArtworkType[]
   materials    ArtworkMaterial[]
+  images       ArtworkImage[]
 
   @@index([status])
   @@index([price])
   @@index([featured])
   @@index([yearMade])
   @@map("artwork")
+}
+
+// ─── Artwork Image ───────────────────────────────────────────────────────────
+
+model ArtworkImage {
+  id               BigInt   @id @default(autoincrement())
+  artworkId        BigInt   @map("artwork_id")
+  objectKey        String   @map("object_key")
+  originalFilename String   @map("original_filename")
+  mimeType         String   @map("mime_type")
+  altText          String?  @map("alt_text")
+  sortOrder        Int      @default(0) @map("sort_order")
+  isPrimary        Boolean  @default(false) @map("is_primary")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  artwork Artwork @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  @@unique([artworkId, objectKey])
+  @@index([artworkId, sortOrder])
+  @@index([artworkId, isPrimary])
+  @@map("artwork_image")
 }
 
 // ─── Artwork Type ─────────────────────────────────────────────────────────────

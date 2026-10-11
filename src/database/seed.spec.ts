@@ -1,92 +1,59 @@
-/**
- * Tests for the seed logic in seed-data.ts.
- * Uses a fully mocked PrismaClient — no live database required.
- */
-import { seedDatabase, SEED_DATA, SeedablePrisma } from './seed-data';
+import { ArtworkStatus } from '@prisma/client';
+import { ARTIST_FIXTURES } from '../../prisma/fixtures/artists.fixtures';
+import { ARTWORK_FIXTURES } from '../../prisma/fixtures/artworks.fixtures';
+import { ARTWORK_IMAGE_FIXTURES } from '../../prisma/fixtures/media.fixtures';
+import { ARTWORK_TYPE_FIXTURES } from '../../prisma/fixtures/taxonomy.fixtures';
 
-describe('seedDatabase', () => {
-  const EXPECTED_ARTWORK_TYPES = [
-    { name: 'Painting', materialCount: 6 },
-    { name: 'Photography', materialCount: 5 },
-    { name: 'Sculpture', materialCount: 7 },
-    { name: 'Drawing', materialCount: 6 },
-    { name: 'Print', materialCount: 6 },
-    { name: 'Digital Art', materialCount: 4 },
-    { name: 'Mixed Media', materialCount: 4 },
-  ];
-
-  let mockPrisma: SeedablePrisma;
-  let artworkTypeUpsert: jest.Mock;
-  let materialUpsert: jest.Mock;
-
-  beforeEach(() => {
-    artworkTypeUpsert = jest.fn().mockResolvedValue({ id: BigInt(1) });
-    materialUpsert = jest.fn().mockResolvedValue({ id: BigInt(2) });
-
-    mockPrisma = {
-      artworkType: { upsert: artworkTypeUpsert },
-      material: { upsert: materialUpsert },
-    };
+describe('development fixtures', () => {
+  it('contains 4-6 artwork types and 8-14 materials', () => {
+    const materialCount = ARTWORK_TYPE_FIXTURES.reduce(
+      (sum, fixture) => sum + fixture.materials.length,
+      0,
+    );
+    expect(ARTWORK_TYPE_FIXTURES.length).toBeGreaterThanOrEqual(4);
+    expect(ARTWORK_TYPE_FIXTURES.length).toBeLessThanOrEqual(6);
+    expect(materialCount).toBeGreaterThanOrEqual(8);
+    expect(materialCount).toBeLessThanOrEqual(14);
   });
 
-  afterEach(() => jest.clearAllMocks());
-
-  it('should upsert every artwork type', async () => {
-    await seedDatabase(mockPrisma);
-    expect(artworkTypeUpsert).toHaveBeenCalledTimes(EXPECTED_ARTWORK_TYPES.length);
+  it('contains 8-12 fictional artists', () => {
+    expect(ARTIST_FIXTURES.length).toBeGreaterThanOrEqual(8);
+    expect(ARTIST_FIXTURES.length).toBeLessThanOrEqual(12);
   });
 
-  it('should upsert artwork types with correct names', async () => {
-    await seedDatabase(mockPrisma);
-    const upsertedNames = artworkTypeUpsert.mock.calls.map((call) => call[0].where.name);
-    EXPECTED_ARTWORK_TYPES.forEach(({ name }) => expect(upsertedNames).toContain(name));
+  it('contains exactly 30 artworks and at least 22 available', () => {
+    expect(ARTWORK_FIXTURES).toHaveLength(30);
+    const availableCount = ARTWORK_FIXTURES.filter(
+      (fixture) => fixture.status === ArtworkStatus.AVAILABLE,
+    ).length;
+    expect(availableCount).toBeGreaterThanOrEqual(22);
   });
 
-  it('should set active: true on all artwork type creates', async () => {
-    await seedDatabase(mockPrisma);
-    artworkTypeUpsert.mock.calls.forEach((call) => {
-      expect(call[0].create.active).toBe(true);
+  it('ensures every artwork has at least one artist and one material', () => {
+    ARTWORK_FIXTURES.forEach((fixture) => {
+      expect(fixture.artistSeedKeys.length).toBeGreaterThan(0);
+      expect(fixture.materialNames.length).toBeGreaterThan(0);
+      expect(fixture.title.toLowerCase()).toContain('sample/demo');
+      expect(fixture.description.toLowerCase()).toContain('sample/demo');
     });
   });
 
-  it('should upsert the correct total number of materials', async () => {
-    await seedDatabase(mockPrisma);
-    const totalMaterials = EXPECTED_ARTWORK_TYPES.reduce((sum, t) => sum + t.materialCount, 0);
-    expect(materialUpsert).toHaveBeenCalledTimes(totalMaterials);
-  });
+  it('provides between 30 and 60 image fixtures and one primary per artwork', () => {
+    expect(ARTWORK_IMAGE_FIXTURES.length).toBeGreaterThanOrEqual(30);
+    expect(ARTWORK_IMAGE_FIXTURES.length).toBeLessThanOrEqual(60);
 
-  it('should set active: true on all material creates', async () => {
-    await seedDatabase(mockPrisma);
-    materialUpsert.mock.calls.forEach((call) => {
-      expect(call[0].create.active).toBe(true);
+    const primaryByArtwork = new Map<string, number>();
+    ARTWORK_IMAGE_FIXTURES.forEach((fixture) => {
+      if (fixture.isPrimary) {
+        primaryByArtwork.set(
+          fixture.artworkSeedKey,
+          (primaryByArtwork.get(fixture.artworkSeedKey) ?? 0) + 1,
+        );
+      }
     });
-  });
 
-  it('should pass artworkType.id as artworkTypeId in each material upsert', async () => {
-    const typeId = BigInt(42);
-    artworkTypeUpsert.mockResolvedValue({ id: typeId });
-
-    await seedDatabase(mockPrisma);
-
-    materialUpsert.mock.calls.forEach((call) => {
-      expect(call[0].create.artworkTypeId).toBe(typeId);
-      expect(call[0].where.artworkTypeId_name.artworkTypeId).toBe(typeId);
+    ARTWORK_FIXTURES.forEach((artwork) => {
+      expect(primaryByArtwork.get(artwork.seedKey)).toBe(1);
     });
-  });
-
-  it('SEED_DATA should have 7 artwork types', () => {
-    expect(SEED_DATA).toHaveLength(7);
-  });
-
-  it('every artwork type in SEED_DATA should have at least one material', () => {
-    SEED_DATA.forEach(({ name, materials }) => {
-      expect(materials.length).toBeGreaterThan(0);
-      expect(materials.length).toBeGreaterThan(0); // every type: ${name}
-    });
-  });
-
-  it('artwork type names in SEED_DATA should be unique', () => {
-    const names = SEED_DATA.map((d) => d.name);
-    expect(new Set(names).size).toBe(names.length);
   });
 });

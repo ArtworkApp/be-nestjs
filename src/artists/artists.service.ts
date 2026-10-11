@@ -25,6 +25,11 @@ export class ArtistsService {
       take: limit,
     });
 
-    return { data };
+    return {
+      data: data.map((artist) => ({
+        ...artist,
+        id: artist.id.toString(),
+      })),
+    };
   }
 }

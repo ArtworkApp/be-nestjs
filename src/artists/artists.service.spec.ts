@@ -25,7 +25,7 @@ describe('ArtistsService', () => {
       take: 10,
     });
     expect(result).toEqual({
-      data: [{ id: 1n, name: 'Claude Monet', country: 'France' }],
+      data: [{ id: '1', name: 'Claude Monet', country: 'France' }],
     });
   });
 

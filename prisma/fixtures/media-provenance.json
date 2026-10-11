@@ -1,0 +1,7 @@
+{
+  "namespace": "artworkapp-dev-v1",
+  "mediaNamespace": "dev-seed/v1",
+  "source": "Deterministic in-repository generated raster fixtures",
+  "license": "Project-owned generated sample/demo content",
+  "notes": "Images are generated from seed keys during local seeding. No third-party artwork is fetched or embedded."
+}
