@@ -1,15 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Response } from 'express';
 import { ArtworksController } from './artworks.controller';
 import { ArtworksService } from './artworks.service';
 
 describe('ArtworksController', () => {
   let controller: ArtworksController;
-  let service: { getArtworks: jest.Mock; getArtwork: jest.Mock };
+  let service: {
+    getArtworks: jest.Mock;
+    getArtwork: jest.Mock;
+    streamArtworkImage: jest.Mock;
+  };
 
   beforeEach(async () => {
     service = {
       getArtworks: jest.fn(),
       getArtwork: jest.fn(),
+      streamArtworkImage: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -35,5 +41,17 @@ describe('ArtworksController', () => {
 
     await expect(controller.getArtwork('1')).resolves.toEqual(result);
     expect(service.getArtwork).toHaveBeenCalledWith('1');
+  });
+
+  it('delegates image streaming to the service', async () => {
+    const response = {} as Response;
+
+    await controller.getArtworkImage('8', '21', response);
+
+    expect(service.streamArtworkImage).toHaveBeenCalledWith({
+      artworkId: '8',
+      imageId: '21',
+      response,
+    });
   });
 });
