@@ -17,7 +17,7 @@ Confirm `.env.local` contains a local DB URL (example):
 
 ```dotenv
 DATABASE_URL=postgresql://artwork_db_user:artwork_db_password@postgres:5432/artwork_db
-OBJECT_STORAGE_ENDPOINT=http://127.0.0.1:9000
+OBJECT_STORAGE_ENDPOINT=http://minio:9000
 OBJECT_STORAGE_ACCESS_KEY=minio_root_username
 OBJECT_STORAGE_SECRET_KEY=minio_root_secret_password
 OBJECT_STORAGE_BUCKET=artwork-images
