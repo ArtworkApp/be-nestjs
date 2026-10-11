@@ -8,6 +8,7 @@ import { MaterialsModule } from './materials/materials.module';
 import { CustomLoggerService } from './common/logger/logger.service';
 import configuration, { configValidationSchema } from './config/configuration';
 import { DatabaseModule } from './database/database.module';
+import { ObjectStorageModule } from './storage/object-storage.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DatabaseModule } from './database/database.module';
       },
     }),
     DatabaseModule,
+    ObjectStorageModule,
     ArtistsModule,
     ArtworksModule,
     ArtworkTypesModule,
