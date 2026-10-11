@@ -1,5 +1,6 @@
 import { ArtworkStatus } from '@prisma/client';
 import { DEV_SEED_NAMESPACE } from './constants';
+import { ARTWORK_TYPE_FIXTURES } from './taxonomy.fixtures';
 
 export interface ArtworkFixture {
   seedKey: string;
@@ -42,14 +43,15 @@ const STATUS_BY_INDEX: ArtworkStatus[] = [
   ArtworkStatus.DRAFT, ArtworkStatus.DRAFT,
 ];
 
-const TYPES = ['Painting', 'Drawing', 'Sculpture', 'Photography', 'Mixed Media'] as const;
-const MATERIALS: Record<(typeof TYPES)[number], string[]> = {
-  Painting: ['Oil', 'Acrylic', 'Watercolor'],
-  Drawing: ['Charcoal', 'Ink'],
-  Sculpture: ['Bronze', 'Clay'],
-  Photography: ['Archival Print', 'Digital Print'],
-  'Mixed Media': ['Collage', 'Textile'],
-};
+const TYPES = ARTWORK_TYPE_FIXTURES.map((f) => f.name);
+
+const MATERIALS: Record<(typeof TYPES)[number], string[]> = ARTWORK_TYPE_FIXTURES.reduce(
+  (acc, fixture) => {
+    acc[fixture.name as (typeof TYPES)[number]] = fixture.materials;
+    return acc;
+  },
+  {} as Record<(typeof TYPES)[number], string[]>,
+);
 
 const ARTISTS = [
   'artist-aerin-song',

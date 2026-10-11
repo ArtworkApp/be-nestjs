@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
 import { ArtworksService } from './artworks.service';
 import { PrismaService } from '../database/prisma.service';
@@ -16,6 +17,7 @@ describe('ArtworksService', () => {
     };
   };
   let objectStorage: { getObjectStream: jest.Mock };
+  let configService: { getOrThrow: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -29,9 +31,11 @@ describe('ArtworksService', () => {
       },
     };
     objectStorage = { getObjectStream: jest.fn() };
+    configService = { getOrThrow: jest.fn().mockReturnValue('api/v1') };
     service = new ArtworksService(
       prisma as unknown as PrismaService,
       objectStorage as any,
+      configService as unknown as ConfigService,
     );
   });
 
@@ -301,14 +305,19 @@ describe('ArtworksService', () => {
 
   it('streams image object when artwork image exists', async () => {
     const setHeader = jest.fn();
+    const onMock = jest.fn();
     const response = {
       setHeader,
       status: jest.fn().mockReturnThis(),
       send: jest.fn(),
+      on: onMock,
+      destroy: jest.fn(),
     } as any;
     const stream = new Readable({ read() {} });
     const pipe = jest.fn();
+    const onStream = jest.fn();
     (stream as any).pipe = pipe;
+    (stream as any).on = onStream;
 
     prisma.artworkImage.findUnique.mockResolvedValue({
       id: 101n,

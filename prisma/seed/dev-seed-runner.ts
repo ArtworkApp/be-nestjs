@@ -34,6 +34,14 @@ interface SeedExecutionOptions {
   nodeEnv?: string;
 }
 
+interface UpsertArtworksOptions {
+  context: SeedContext;
+  summary: SeedSummary;
+  artistIdsBySeedKey: Map<string, bigint>;
+  artworkTypeIds: Map<string, bigint>;
+  materialIds: Map<string, bigint>;
+}
+
 function createSummary(databaseName: string): SeedSummary {
   return {
     databaseName,
@@ -278,12 +286,10 @@ function toArtworkCreateInput(fixture: ArtworkFixture) {
 }
 
 async function upsertArtworks(
-  context: SeedContext,
-  summary: SeedSummary,
-  artistIdsBySeedKey: Map<string, bigint>,
-  artworkTypeIds: Map<string, bigint>,
-  materialIds: Map<string, bigint>,
+  options: UpsertArtworksOptions,
 ): Promise<Map<string, bigint>> {
+  const { context, summary, artistIdsBySeedKey, artworkTypeIds, materialIds } =
+    options;
   const artworkIds = new Map<string, bigint>();
 
   for (const fixture of ARTWORK_FIXTURES) {
@@ -441,13 +447,13 @@ export async function runDevSeed(options: SeedExecutionOptions): Promise<SeedSum
   const artworkTypeIds = await upsertArtworkTypes(context, summary);
   const materialIds = await upsertMaterials(context, summary, artworkTypeIds);
   const artistIds = await upsertArtists(context, summary);
-  const artworkIds = await upsertArtworks(
+  const artworkIds = await upsertArtworks({
     context,
     summary,
-    artistIds,
+    artistIdsBySeedKey: artistIds,
     artworkTypeIds,
     materialIds,
-  );
+  });
   await upsertArtworkImages(context, summary, artworkIds);
 
   return summary;

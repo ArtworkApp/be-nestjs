@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ArtworkStatus, Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { PrismaService } from '../database/prisma.service';
@@ -32,9 +33,12 @@ type ArtworkWithRelations = Prisma.ArtworkGetPayload<{
 
 @Injectable()
 export class ArtworksService {
+  private readonly logger = new Logger(ArtworksService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly objectStorageService: ObjectStorageService,
+    private readonly configService: ConfigService,
   ) {}
 
   async getArtworks(query: GetArtworksQueryDto) {
@@ -187,7 +191,28 @@ export class ArtworksService {
         object.contentLength.toString(),
       );
     }
-    object.stream.pipe(options.response);
+    this.pipeStreamToResponse(object.stream, options.response);
+  }
+
+  private pipeStreamToResponse(
+    sourceStream: NodeJS.ReadableStream,
+    response: Response,
+  ): void {
+    sourceStream.on('error', (error) => {
+      if (!response.headersSent) {
+        response.status(500).json({ message: 'Failed to stream image' });
+      } else {
+        response.destroy();
+      }
+      this.logger.error('Stream error during image delivery', error);
+    });
+
+    response.on('error', (error) => {
+      (sourceStream as any).destroy?.();
+      this.logger.error('Response error during image delivery', error);
+    });
+
+    sourceStream.pipe(response);
   }
 
   private parseMaterialIds(raw?: string): string[] {
@@ -278,9 +303,10 @@ export class ArtworksService {
     artworkId: bigint;
     image: ArtworkWithRelations['images'][number];
   }): ArtworkImageResponse {
+    const apiPrefix = this.configService.getOrThrow<string>('app.apiPrefix');
     return {
       id: options.image.id.toString(),
-      url: `/api/v1/artworks/${options.artworkId.toString()}/images/${options.image.id.toString()}`,
+      url: `/${apiPrefix}/artworks/${options.artworkId.toString()}/images/${options.image.id.toString()}`,
       altText: options.image.altText,
       mimeType: options.image.mimeType,
       isPrimary: options.image.isPrimary,
