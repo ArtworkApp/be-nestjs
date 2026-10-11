@@ -8,7 +8,10 @@ export class ArtworkTypesService {
 
   async getArtworkTypes(query: GetArtworkTypesQueryDto = {}) {
     const data = await this.prisma.artworkType.findMany({
-      where: query.active === undefined ? { active: true } : { active: query.active },
+      where:
+        query.active === undefined
+          ? { active: true }
+          : { active: query.active },
       orderBy: { name: 'asc' },
     });
 
