@@ -28,6 +28,11 @@ interface SessionPresentation {
   response: Response;
 }
 
+interface RefreshTransport {
+  token: string;
+  client: 'web' | 'mobile';
+}
+
 type AuthResponse =
   | { user: UserProfile }
   | ({ user: UserProfile } & SessionToken);
@@ -82,6 +87,32 @@ export class AuthController {
     @Body() body: RefreshDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
+    const { token, client } = this.readRefreshTransport(request, body);
+    const { user, tokens } = await this.sessions.refreshSession(token);
+    return this.presentSession({ user, tokens, client, response });
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(
+    @Req() request: Request,
+    @Body() body: RefreshDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    const { token, client } = this.readRefreshTransport(request, body);
+    await this.sessions.logoutSession(token);
+    response.setHeader('Cache-Control', 'no-store');
+    if (client === 'web') {
+      const options = this.cookieOptions();
+      response.clearCookie('artwork_access', options);
+      response.clearCookie('artwork_refresh', options);
+    }
+  }
+
+  private readRefreshTransport(
+    request: Request,
+    body: RefreshDto,
+  ): RefreshTransport {
     const cookieToken = readAuthCookie(request, 'artwork_refresh');
     const bodyToken = body?.refreshToken;
     if (
@@ -99,14 +130,7 @@ export class AuthController {
     if (!refreshToken) {
       throw sessionExpired();
     }
-
-    const { user, tokens } = await this.sessions.refreshSession(refreshToken);
-    return this.presentSession({
-      user,
-      tokens,
-      client: cookieToken ? 'web' : 'mobile',
-      response,
-    });
+    return { token: refreshToken, client: cookieToken ? 'web' : 'mobile' };
   }
 
   private presentSession(options: SessionPresentation): AuthResponse {
@@ -116,16 +140,7 @@ export class AuthController {
       return { user, ...tokens };
     }
 
-    const nodeEnv = this.config.get<string>('NODE_ENV') ?? 'development';
-    const cookieOptions: CookieOptions = {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: nodeEnv !== 'development',
-      path: '/',
-      ...(nodeEnv === 'production'
-        ? { domain: this.config.getOrThrow<string>('AUTH_COOKIE_DOMAIN') }
-        : {}),
-    };
+    const cookieOptions = this.cookieOptions();
     response.cookie('artwork_access', tokens.accessToken, {
       ...cookieOptions,
       maxAge: this.config.getOrThrow<number>('JWT_ACCESS_TTL_SECONDS') * 1000,
@@ -135,5 +150,18 @@ export class AuthController {
       maxAge: this.config.getOrThrow<number>('JWT_REFRESH_TTL_SECONDS') * 1000,
     });
     return { user };
+  }
+
+  private cookieOptions(): CookieOptions {
+    const nodeEnv = this.config.get<string>('NODE_ENV') ?? 'development';
+    return {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: nodeEnv !== 'development',
+      path: '/',
+      ...(nodeEnv === 'production'
+        ? { domain: this.config.getOrThrow<string>('AUTH_COOKIE_DOMAIN') }
+        : {}),
+    };
   }
 }

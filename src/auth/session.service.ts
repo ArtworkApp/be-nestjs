@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { RefreshToken } from '@prisma/client';
 import { isUUID } from 'class-validator';
 import { PrismaService } from '../database/prisma.service';
 import { sessionExpired } from './auth-errors';
@@ -56,34 +57,24 @@ export class SessionService {
   async refreshSession(refreshToken: string): Promise<RefreshedSession> {
     const claims = await this.verifyRefreshToken(refreshToken);
     const tokenHash = this.hashToken(refreshToken);
-    const oldRow = await this.prisma.refreshToken.findUnique({
-      where: { id: claims.jti },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            displayName: true,
-            avatarUrl: true,
+    const oldRow = await this.requireActiveRefreshRow(
+      await this.prisma.refreshToken.findUnique({
+        where: { id: claims.jti },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
         },
-      },
-    });
+      }),
+      claims,
+      tokenHash,
+    );
     const now = new Date(Date.now());
-    if (
-      !oldRow ||
-      oldRow.userId !== claims.sub ||
-      oldRow.tokenHash !== tokenHash ||
-      oldRow.expiresAt <= now
-    ) {
-      throw sessionExpired();
-    }
-    if (oldRow.revokedAt) {
-      if (oldRow.replacedById) {
-        await this.revokeFamily(oldRow.userId, oldRow.familyId);
-      }
-      throw sessionExpired();
-    }
 
     const issued = await this.issueTokens(oldRow.userId);
     try {
@@ -119,6 +110,40 @@ export class SessionService {
       throw error;
     }
     return { user: oldRow.user, tokens: issued.tokens };
+  }
+
+  async logoutSession(refreshToken: string): Promise<void> {
+    const claims = await this.verifyRefreshToken(refreshToken);
+    const row = await this.requireActiveRefreshRow(
+      await this.prisma.refreshToken.findUnique({
+        where: { id: claims.jti },
+      }),
+      claims,
+      this.hashToken(refreshToken),
+    );
+    await this.revokeFamily(row.userId, row.familyId);
+  }
+
+  private async requireActiveRefreshRow<T extends RefreshToken>(
+    row: T | null,
+    claims: RefreshClaims,
+    tokenHash: string,
+  ): Promise<T> {
+    if (
+      !row ||
+      row.userId !== claims.sub ||
+      row.tokenHash !== tokenHash ||
+      row.expiresAt <= new Date(Date.now())
+    ) {
+      throw sessionExpired();
+    }
+    if (row.revokedAt) {
+      if (row.replacedById) {
+        await this.revokeFamily(row.userId, row.familyId);
+      }
+      throw sessionExpired();
+    }
+    return row;
   }
 
   private async issueTokens(userId: string): Promise<IssuedTokens> {
