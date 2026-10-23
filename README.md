@@ -145,6 +145,23 @@ serverless deploy --stage prod
 
 ---
 
+## API error responses
+
+Every `/api/v1` endpoint returns errors in the same JSON envelope. The HTTP status remains meaningful, while `code` lets clients choose behavior and `message` can be shown to users. Validation errors may also include a `fields` object with messages keyed by input field.
+
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Artwork not found"
+  }
+}
+```
+
+A global NestJS exception filter formats framework errors, controller/service exceptions, and unexpected failures. For an endpoint-specific error, throw `ApiException` with an HTTP `status`, stable `code`, and safe `message` (plus optional `fields`). For example, a duplicate registration email can use status `409` and code `EMAIL_ALREADY_EXISTS`. `@HttpCode()` controls successful responses, not thrown errors. Never return passwords, tokens, or internal error details.
+
+---
+
 ## 🖼️ Media Management Flow (S3 Presigned URLs)
 
 To avoid AWS Lambda execution time limits and the 6MB payload restriction, images are **never** uploaded directly to the NestJS application server. 
