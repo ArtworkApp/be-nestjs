@@ -19,13 +19,13 @@ import { AuthRateLimit, AuthRateLimitGuard } from './auth-rate-limit.guard';
 import { CredentialsService, UserProfile } from './credentials.service';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshDto } from './dto/refresh.dto';
-import { SessionService, SessionToken } from './session.service';
+import { SessionService, SessionTokens } from './session.service';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 interface SessionPresentation {
   user: UserProfile;
-  tokens: SessionToken;
+  tokens: SessionTokens;
   client?: 'web' | 'mobile';
   response: Response;
 }
@@ -37,7 +37,7 @@ interface RefreshTransport {
 
 type AuthResponse =
   | { user: UserProfile }
-  | ({ user: UserProfile } & SessionToken);
+  | ({ user: UserProfile } & SessionTokens);
 
 @Controller('auth')
 export class AuthController {

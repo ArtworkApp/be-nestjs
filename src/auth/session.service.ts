@@ -8,14 +8,14 @@ import { PrismaService } from '../database/prisma.service';
 import { sessionExpired } from './auth-errors';
 import { UserProfile } from './credentials.service';
 
-export interface SessionToken {
+export interface SessionTokens {
   accessToken: string;
   refreshToken: string;
 }
 
 export interface RefreshedSession {
   user: UserProfile;
-  tokens: SessionToken;
+  tokens: SessionTokens;
 }
 
 interface RefreshClaims {
@@ -25,7 +25,7 @@ interface RefreshClaims {
 }
 
 interface IssuedTokens {
-  tokens: SessionToken;
+  tokens: SessionTokens;
   refreshId: string;
   expiresAt: Date;
 }
@@ -40,7 +40,7 @@ export class SessionService {
     private readonly config: ConfigService,
   ) {}
 
-  async createSession(userId: string): Promise<SessionToken> {
+  async createSession(userId: string): Promise<SessionTokens> {
     const issued = await this.issueTokens(userId);
     await this.prisma.refreshToken.create({
       data: {
