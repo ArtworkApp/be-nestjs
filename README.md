@@ -215,8 +215,12 @@ DATABASE_PASSWORD=securepassword
 DATABASE_NAME=artwork_marketplace
 
 # JWT Authentication
-JWT_SECRET=your-secure-aws-secret-key
-JWT_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=your-long-random-access-secret
+JWT_REFRESH_SECRET=a-different-long-random-refresh-secret
+JWT_ISSUER=artworkapp-api
+JWT_AUDIENCE=artworkapp-clients
+JWT_ACCESS_TTL_SECONDS=900
+JWT_REFRESH_TTL_SECONDS=2592000
 ```
 
 ---

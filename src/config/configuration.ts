@@ -10,8 +10,29 @@ export const configValidationSchema = Joi.object({
   DATABASE_NAME: Joi.string().default('artwork_db'),
 
   // JWT Configuration
-  JWT_SECRET: Joi.string().required(),
-  JWT_EXPIRES_IN: Joi.string().default('7d'),
+  JWT_ACCESS_SECRET: Joi.string()
+    .min(32)
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.required(),
+      otherwise: Joi.string().default(
+        'local-access-secret-change-before-production',
+      ),
+    }),
+  JWT_REFRESH_SECRET: Joi.string()
+    .min(32)
+    .invalid(Joi.ref('JWT_ACCESS_SECRET'))
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.required(),
+      otherwise: Joi.string().default(
+        'local-refresh-secret-change-before-production',
+      ),
+    }),
+  JWT_ISSUER: Joi.string().default('artworkapp-api'),
+  JWT_AUDIENCE: Joi.string().default('artworkapp-clients'),
+  JWT_ACCESS_TTL_SECONDS: Joi.number().integer().positive().default(900),
+  JWT_REFRESH_TTL_SECONDS: Joi.number().integer().positive().default(2592000),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().default('sk_test_placeholder'),
@@ -46,10 +67,6 @@ export default () => ({
     username: process.env.DATABASE_USERNAME,
     password: process.env.DATABASE_PASSWORD,
     name: process.env.DATABASE_NAME,
-  },
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN,
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,

@@ -18,8 +18,12 @@ export DATABASE_PASSWORD="${DATABASE_PASSWORD:-artwork_db_password}"
 export DATABASE_NAME="${DATABASE_NAME:-artwork_db}"
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
-export JWT_SECRET="${JWT_SECRET:-dev-jwt-secret-change-me}"
-export JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-7d}"
+export JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET:-local-access-secret-change-before-production}"
+export JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-local-refresh-secret-change-before-production}"
+export JWT_ISSUER="${JWT_ISSUER:-artworkapp-api}"
+export JWT_AUDIENCE="${JWT_AUDIENCE:-artworkapp-clients}"
+export JWT_ACCESS_TTL_SECONDS="${JWT_ACCESS_TTL_SECONDS:-900}"
+export JWT_REFRESH_TTL_SECONDS="${JWT_REFRESH_TTL_SECONDS:-2592000}"
 
 # ── Third-party placeholders (not needed for local DB work) ───────────────────
 export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-sk_test_placeholder}"
