@@ -19,8 +19,13 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      JWT_SECRET: dev-secret-key-change-in-production
-      JWT_EXPIRES_IN: 7d
+      JWT_ACCESS_SECRET: local-access-secret-change-before-production
+      JWT_REFRESH_SECRET: local-refresh-secret-change-before-production
+      JWT_ISSUER: artworkapp-api
+      JWT_AUDIENCE: artworkapp-clients
+      JWT_ACCESS_TTL_SECONDS: 900
+      JWT_REFRESH_TTL_SECONDS: 2592000
+      AUTH_WEB_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       STRIPE_SECRET_KEY: ""
       STRIPE_WEBHOOK_SECRET: ""
       SENDGRID_API_KEY: ""
