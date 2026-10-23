@@ -7,6 +7,7 @@ import { Strategy } from 'passport-jwt';
 import { ApiException } from '../common/errors/api.exception';
 import { PrismaService } from '../database/prisma.service';
 import { UserProfile } from './credentials.service';
+import { readAuthCookie } from './auth-cookie';
 
 interface AccessClaims {
   sub: string;
@@ -20,15 +21,7 @@ export function extractAccessToken(request: Request): string | null {
     return /^Bearer ([^\s]+)$/.exec(authorization)?.[1] ?? null;
   }
 
-  const cookieHeader = request.headers.cookie;
-  if (!cookieHeader) {
-    return null;
-  }
-  const accessCookie = cookieHeader
-    .split(';')
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith('artwork_access='));
-  return accessCookie?.slice('artwork_access='.length) || null;
+  return readAuthCookie(request, 'artwork_access');
 }
 
 @Injectable()

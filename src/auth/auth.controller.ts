@@ -5,13 +5,18 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CookieOptions, Response } from 'express';
+import { CookieOptions, Request, Response } from 'express';
+import { ApiException } from '../common/errors/api.exception';
+import { readAuthCookie } from './auth-cookie';
+import { sessionExpired } from './auth-errors';
 import { CredentialsService, UserProfile } from './credentials.service';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { SessionService, SessionToken } from './session.service';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -68,6 +73,40 @@ export class AuthController {
   ): { user: UserProfile } {
     response.setHeader('Cache-Control', 'no-store');
     return { user };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Req() request: Request,
+    @Body() body: RefreshDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponse> {
+    const cookieToken = readAuthCookie(request, 'artwork_refresh');
+    const bodyToken = body?.refreshToken;
+    if (
+      cookieToken &&
+      body &&
+      Object.prototype.hasOwnProperty.call(body, 'refreshToken')
+    ) {
+      throw new ApiException({
+        status: HttpStatus.BAD_REQUEST,
+        code: 'VALIDATION_ERROR',
+        message: 'Use either a refresh cookie or a refresh token body.',
+      });
+    }
+    const refreshToken = cookieToken || bodyToken;
+    if (!refreshToken) {
+      throw sessionExpired();
+    }
+
+    const { user, tokens } = await this.sessions.refreshSession(refreshToken);
+    return this.presentSession({
+      user,
+      tokens,
+      client: cookieToken ? 'web' : 'mobile',
+      response,
+    });
   }
 
   private presentSession(options: SessionPresentation): AuthResponse {
