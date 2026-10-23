@@ -10,12 +10,19 @@ export interface UserProfile {
   avatarUrl: string | null;
 }
 
+const DUMMY_PASSWORD_HASH =
+  '$2b$12$GG2CciorV3GKG7IlweYffOn2zCV9WGmLiInVlnqZxZVtZLglg77hS';
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 @Injectable()
 export class CredentialsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async register(email: string, password: string): Promise<UserProfile> {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     const existingUser = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
       select: { id: true },
@@ -41,6 +48,41 @@ export class CredentialsService {
       }
       throw error;
     }
+  }
+
+  async verifyCredentials(
+    email: string,
+    password: string,
+  ): Promise<UserProfile> {
+    const normalizedEmail = normalizeEmail(email);
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        avatarUrl: true,
+        passwordHash: true,
+      },
+    });
+    const passwordMatches = await bcrypt.compare(
+      password,
+      user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
+    if (!user || !passwordMatches) {
+      throw new ApiException({
+        status: HttpStatus.UNAUTHORIZED,
+        code: 'INVALID_CREDENTIALS',
+        message: 'Email or password is incorrect.',
+      });
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    };
   }
 
   private duplicateEmailError(): ApiException {
