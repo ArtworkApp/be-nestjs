@@ -24,6 +24,7 @@ export JWT_ISSUER="${JWT_ISSUER:-artworkapp-api}"
 export JWT_AUDIENCE="${JWT_AUDIENCE:-artworkapp-clients}"
 export JWT_ACCESS_TTL_SECONDS="${JWT_ACCESS_TTL_SECONDS:-900}"
 export JWT_REFRESH_TTL_SECONDS="${JWT_REFRESH_TTL_SECONDS:-2592000}"
+export AUTH_WEB_ORIGINS="${AUTH_WEB_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}"
 
 # ── Third-party placeholders (not needed for local DB work) ───────────────────
 export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-sk_test_placeholder}"

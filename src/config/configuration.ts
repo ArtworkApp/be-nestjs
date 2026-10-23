@@ -37,6 +37,13 @@ export const configValidationSchema = Joi.object({
     is: 'production',
     then: Joi.required(),
   }),
+  AUTH_WEB_ORIGINS: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.required(),
+    otherwise: Joi.string().default(
+      'http://localhost:3000,http://127.0.0.1:3000',
+    ),
+  }),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().default('sk_test_placeholder'),

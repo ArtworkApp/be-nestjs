@@ -222,7 +222,15 @@ JWT_AUDIENCE=artworkapp-clients
 JWT_ACCESS_TTL_SECONDS=900
 JWT_REFRESH_TTL_SECONDS=2592000
 AUTH_COOKIE_DOMAIN=.example.com
+AUTH_WEB_ORIGINS=https://app.example.com
 ```
+
+Auth writes accept JSON over HTTPS and allowlisted browser origins. Registration,
+login, and refresh have per-process IP rate limits. Deploy a shared rate limit
+at the edge when running more than one API instance, since process memory is
+not shared. To run the auth HTTP contract tests, set `AUTH_HTTP_TESTS=1`; to
+run the migrated PostgreSQL session tests, set
+`AUTH_SCHEMA_TEST_DATABASE_URL` to an isolated test database URL.
 
 ---
 

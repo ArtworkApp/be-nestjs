@@ -25,6 +25,26 @@ describe('AuthController register and login', () => {
     setHeader: jest.Mock;
   };
 
+  function webRequest(cookie?: string, production = false): Request {
+    return {
+      headers: {
+        origin: production
+          ? 'https://app.example.com'
+          : 'http://localhost:3000',
+        'content-type': 'application/json',
+        ...(cookie ? { cookie } : {}),
+      },
+      secure: production,
+    } as Request;
+  }
+
+  function mobileRequest(): Request {
+    return {
+      headers: { 'content-type': 'application/json' },
+      secure: false,
+    } as Request;
+  }
+
   function setup(nodeEnv: string, cookieDomain?: string): void {
     credentials = {
       register: jest.fn().mockResolvedValue(user),
@@ -42,6 +62,10 @@ describe('AuthController register and login', () => {
     };
     const values: Record<string, string | number> = {
       NODE_ENV: nodeEnv,
+      AUTH_WEB_ORIGINS:
+        nodeEnv === 'production'
+          ? 'https://app.example.com'
+          : 'http://localhost:3000,https://app.example.com',
       JWT_ACCESS_TTL_SECONDS: 900,
       JWT_REFRESH_TTL_SECONDS: 2592000,
       ...(cookieDomain ? { AUTH_COOKIE_DOMAIN: cookieDomain } : {}),
@@ -61,6 +85,7 @@ describe('AuthController register and login', () => {
 
   it('registers a web user and sends tokens only as local cookies', async () => {
     const result = await controller.register(
+      webRequest(),
       { email: 'Person@Example.com', password: 'long-example-password' },
       response as unknown as Response,
     );
@@ -103,6 +128,7 @@ describe('AuthController register and login', () => {
 
   it('logs in a mobile user and returns tokens in JSON without cookies', async () => {
     const result = await controller.login(
+      mobileRequest(),
       {
         email: 'person@example.com',
         password: 'long-example-password',
@@ -128,6 +154,7 @@ describe('AuthController register and login', () => {
     setup('production', '.example.com');
 
     await controller.login(
+      webRequest(undefined, true),
       { email: 'person@example.com', password: 'long-example-password' },
       response as unknown as Response,
     );
@@ -157,6 +184,7 @@ describe('AuthController register and login', () => {
 
     await expect(
       controller.login(
+        webRequest(),
         { email: 'person@example.com', password: 'long-example-password' },
         response as unknown as Response,
       ),
@@ -177,9 +205,7 @@ describe('AuthController register and login', () => {
   });
 
   it('rotates a web refresh cookie and replaces both auth cookies', async () => {
-    const request = {
-      headers: { cookie: 'other=one; artwork_refresh=old.jwt' },
-    } as Request;
+    const request = webRequest('other=one; artwork_refresh=old.jwt');
 
     const result = await controller.refresh(
       request,
@@ -205,7 +231,7 @@ describe('AuthController register and login', () => {
   });
 
   it('rotates a mobile refresh body and returns both tokens without cookies', async () => {
-    const request = { headers: {} } as Request;
+    const request = mobileRequest();
 
     const result = await controller.refresh(
       request,
@@ -269,9 +295,7 @@ describe('AuthController register and login', () => {
   });
 
   it('logs out a web session and clears both local auth cookies', async () => {
-    const request = {
-      headers: { cookie: 'artwork_refresh=current.jwt' },
-    } as Request;
+    const request = webRequest('artwork_refresh=current.jwt');
 
     const result = await controller.logout(
       request,
@@ -303,7 +327,7 @@ describe('AuthController register and login', () => {
     setup('production', '.example.com');
 
     await controller.logout(
-      { headers: { cookie: 'artwork_refresh=current.jwt' } } as Request,
+      webRequest('artwork_refresh=current.jwt', true),
       {},
       response as unknown as Response,
     );
@@ -319,7 +343,7 @@ describe('AuthController register and login', () => {
 
   it('logs out mobile by body token without writing cookies', async () => {
     const result = await controller.logout(
-      { headers: {} } as Request,
+      mobileRequest(),
       { refreshToken: 'current.jwt' },
       response as unknown as Response,
     );
@@ -358,11 +382,49 @@ describe('AuthController register and login', () => {
 
     await expect(
       controller.logout(
-        { headers: { cookie: 'artwork_refresh=current.jwt' } } as Request,
+        webRequest('artwork_refresh=current.jwt'),
         {},
         response as unknown as Response,
       ),
     ).rejects.toThrow('database unavailable');
     expect(response.clearCookie).not.toHaveBeenCalled();
+  });
+
+  it('rejects a web registration from an unapproved Origin before creating a user', async () => {
+    const request = webRequest();
+    request.headers.origin = 'https://evil.example';
+
+    await expect(
+      controller.register(
+        request,
+        { email: 'person@example.com', password: 'long-example-password' },
+        response as unknown as Response,
+      ),
+    ).rejects.toMatchObject({
+      status: 403,
+      response: { error: { code: 'ORIGIN_NOT_ALLOWED' } },
+    });
+    expect(credentials.register).not.toHaveBeenCalled();
+  });
+
+  it('rejects an Origin on mobile login before checking credentials', async () => {
+    const request = mobileRequest();
+    request.headers.origin = 'https://app.example.com';
+
+    await expect(
+      controller.login(
+        request,
+        {
+          email: 'person@example.com',
+          password: 'long-example-password',
+          client: 'mobile',
+        },
+        response as unknown as Response,
+      ),
+    ).rejects.toMatchObject({
+      status: 400,
+      response: { error: { code: 'VALIDATION_ERROR' } },
+    });
+    expect(credentials.verifyCredentials).not.toHaveBeenCalled();
   });
 });

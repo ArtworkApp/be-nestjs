@@ -8,6 +8,7 @@ import { CredentialsService } from './credentials.service';
 import { SessionService } from './session.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
+import { AuthRateLimitGuard } from './auth-rate-limit.guard';
 
 @Module({
   imports: [
@@ -17,7 +18,13 @@ import { JwtStrategy } from './jwt.strategy';
     PassportModule,
   ],
   controllers: [AuthController],
-  providers: [CredentialsService, SessionService, JwtStrategy, JwtAuthGuard],
+  providers: [
+    CredentialsService,
+    SessionService,
+    JwtStrategy,
+    JwtAuthGuard,
+    AuthRateLimitGuard,
+  ],
   exports: [JwtAuthGuard],
 })
 export class AuthModule {}

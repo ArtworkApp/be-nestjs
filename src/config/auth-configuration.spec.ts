@@ -7,6 +7,7 @@ describe('auth configuration', () => {
     JWT_ACCESS_SECRET: 'access-secret-with-at-least-32-characters',
     JWT_REFRESH_SECRET: 'refresh-secret-with-at-least-32-characters',
     AUTH_COOKIE_DOMAIN: '.example.com',
+    AUTH_WEB_ORIGINS: 'https://app.example.com',
   };
 
   it('requires two different JWT secrets in production', () => {
@@ -46,5 +47,15 @@ describe('auth configuration', () => {
     expect(result.value.JWT_REFRESH_SECRET).not.toBe(
       result.value.JWT_ACCESS_SECRET,
     );
+    expect(result.value.AUTH_WEB_ORIGINS).toContain('http://localhost:3000');
+  });
+
+  it('requires an explicit web origin allowlist in production', () => {
+    const result = configValidationSchema.validate({
+      ...productionConfig,
+      AUTH_WEB_ORIGINS: undefined,
+    });
+
+    expect(result.error).toBeDefined();
   });
 });

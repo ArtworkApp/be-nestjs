@@ -14,6 +14,8 @@ import { CookieOptions, Request, Response } from 'express';
 import { ApiException } from '../common/errors/api.exception';
 import { readAuthCookie } from './auth-cookie';
 import { sessionExpired } from './auth-errors';
+import { assertAuthWriteRequest } from './auth-request-policy';
+import { AuthRateLimit, AuthRateLimitGuard } from './auth-rate-limit.guard';
 import { CredentialsService, UserProfile } from './credentials.service';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -47,10 +49,14 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @AuthRateLimit(5, 60_000)
+  @UseGuards(AuthRateLimitGuard)
   async register(
+    @Req() request: Request,
     @Body() body: RegisterDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
+    assertAuthWriteRequest(request, body.client ?? 'web', this.config);
     const user = await this.credentials.register(body.email, body.password);
     const tokens = await this.sessions.createSession(user.id);
     return this.presentSession({ user, tokens, client: body.client, response });
@@ -58,10 +64,14 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @AuthRateLimit(10, 60_000)
+  @UseGuards(AuthRateLimitGuard)
   async login(
+    @Req() request: Request,
     @Body() body: RegisterDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
+    assertAuthWriteRequest(request, body.client ?? 'web', this.config);
     const user = await this.credentials.verifyCredentials(
       body.email,
       body.password,
@@ -82,12 +92,15 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @AuthRateLimit(30, 60_000)
+  @UseGuards(AuthRateLimitGuard)
   async refresh(
     @Req() request: Request,
     @Body() body: RefreshDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
     const { token, client } = this.readRefreshTransport(request, body);
+    assertAuthWriteRequest(request, client, this.config);
     const { user, tokens } = await this.sessions.refreshSession(token);
     return this.presentSession({ user, tokens, client, response });
   }
@@ -100,6 +113,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     const { token, client } = this.readRefreshTransport(request, body);
+    assertAuthWriteRequest(request, client, this.config);
     await this.sessions.logoutSession(token);
     response.setHeader('Cache-Control', 'no-store');
     if (client === 'web') {

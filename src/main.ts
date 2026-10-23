@@ -2,18 +2,24 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { allowedWebOrigins } from './auth/auth-request-policy';
 import { CustomLoggerService } from './common/logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new CustomLoggerService(),
   });
 
   const configService = app.get(ConfigService);
   const port = configService.get('app.port');
   const apiPrefix = configService.get('app.apiPrefix');
+
+  if (configService.get<string>('NODE_ENV') !== 'development') {
+    app.set('trust proxy', 1);
+  }
 
   // Security middleware
   app.use(helmet());
@@ -35,10 +41,7 @@ async function bootstrap() {
 
   // CORS configuration
   app.enableCors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? ['https://your-frontend-domain.com']
-        : true,
+    origin: allowedWebOrigins(configService),
     credentials: true,
   });
 
