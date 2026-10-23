@@ -17,6 +17,7 @@ import { sessionExpired } from './auth-errors';
 import { assertAuthWriteRequest } from './auth-request-policy';
 import { AuthRateLimit, AuthRateLimitGuard } from './auth-rate-limit.guard';
 import { CredentialsService, UserProfile } from './credentials.service';
+import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { SessionService, SessionTokens } from './session.service';
@@ -68,7 +69,7 @@ export class AuthController {
   @UseGuards(AuthRateLimitGuard)
   async login(
     @Req() request: Request,
-    @Body() body: RegisterDto,
+    @Body() body: LoginDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
     assertAuthWriteRequest(request, body.client ?? 'web', this.config);
