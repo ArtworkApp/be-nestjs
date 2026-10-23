@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { ArtistsModule } from './artists/artists.module';
 import { ArtworkTypesModule } from './artwork-types/artwork-types.module';
 import { ArtworksModule } from './artworks/artworks.module';
+import { AuthModule } from './auth/auth.module';
 import { MaterialsModule } from './materials/materials.module';
 import { CustomLoggerService } from './common/logger/logger.service';
 import { ApiExceptionFilter } from './common/errors/api-exception.filter';
@@ -25,6 +26,7 @@ import { ObjectStorageModule } from './storage/object-storage.module';
       },
     }),
     DatabaseModule,
+    AuthModule,
     ObjectStorageModule,
     ArtistsModule,
     ArtworksModule,

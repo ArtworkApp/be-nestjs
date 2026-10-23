@@ -33,6 +33,10 @@ export const configValidationSchema = Joi.object({
   JWT_AUDIENCE: Joi.string().default('artworkapp-clients'),
   JWT_ACCESS_TTL_SECONDS: Joi.number().integer().positive().default(900),
   JWT_REFRESH_TTL_SECONDS: Joi.number().integer().positive().default(2592000),
+  AUTH_COOKIE_DOMAIN: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.required(),
+  }),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().default('sk_test_placeholder'),

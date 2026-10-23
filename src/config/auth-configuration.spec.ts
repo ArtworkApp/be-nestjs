@@ -6,6 +6,7 @@ describe('auth configuration', () => {
     DATABASE_URL: 'postgresql://user:pass@localhost:5432/artwork',
     JWT_ACCESS_SECRET: 'access-secret-with-at-least-32-characters',
     JWT_REFRESH_SECRET: 'refresh-secret-with-at-least-32-characters',
+    AUTH_COOKIE_DOMAIN: '.example.com',
   };
 
   it('requires two different JWT secrets in production', () => {
