@@ -147,4 +147,16 @@ describe('AuthController register and login', () => {
     ).rejects.toThrow('database unavailable');
     expect(response.cookie).not.toHaveBeenCalled();
   });
+
+  it('returns the current public profile without issuing new tokens', () => {
+    const result = controller.me(user, response as unknown as Response);
+
+    expect(result).toEqual({ user });
+    expect(response.cookie).not.toHaveBeenCalled();
+    expect(sessions.createSession).not.toHaveBeenCalled();
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'no-store',
+    );
+  });
 });

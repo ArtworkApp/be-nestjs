@@ -1,16 +1,20 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CookieOptions, Response } from 'express';
 import { CredentialsService, UserProfile } from './credentials.service';
 import { RegisterDto } from './dto/register.dto';
 import { SessionService, SessionToken } from './session.service';
+import { CurrentUser } from './current-user.decorator';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 interface SessionPresentation {
   user: UserProfile;
@@ -54,6 +58,16 @@ export class AuthController {
     );
     const tokens = await this.sessions.createSession(user.id);
     return this.presentSession({ user, tokens, client: body.client, response });
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(
+    @CurrentUser() user: UserProfile,
+    @Res({ passthrough: true }) response: Response,
+  ): { user: UserProfile } {
+    response.setHeader('Cache-Control', 'no-store');
+    return { user };
   }
 
   private presentSession(options: SessionPresentation): AuthResponse {
