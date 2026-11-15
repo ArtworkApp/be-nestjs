@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { createTransport } from 'nodemailer';
-import { EmailSender } from './email-sender';
 import { MAILPIT_TRANSPORT, MailpitEmailSender } from './mailpit-email.sender';
 
 @Module({
@@ -18,8 +17,7 @@ import { MAILPIT_TRANSPORT, MailpitEmailSender } from './mailpit-email.sender';
         }),
     },
     MailpitEmailSender,
-    { provide: EmailSender, useExisting: MailpitEmailSender },
   ],
-  exports: [EmailSender],
+  exports: [MailpitEmailSender],
 })
 export class MailpitEmailModule {}

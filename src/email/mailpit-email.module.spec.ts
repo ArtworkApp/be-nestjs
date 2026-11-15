@@ -1,8 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { createTransport } from 'nodemailer';
-import { EmailSender } from './email-sender';
 import { MailpitEmailModule } from './mailpit-email.module';
+import { MailpitEmailSender } from './mailpit-email.sender';
 
 jest.mock('nodemailer', () => ({ createTransport: jest.fn() }));
 
@@ -26,7 +26,7 @@ describe('MailpitEmailModule', () => {
       .useValue({ getOrThrow: (key: string) => values[key] })
       .compile();
 
-    await module.get(EmailSender).send({
+    await module.get(MailpitEmailSender).send({
       to: 'person@example.com',
       subject: 'Test',
       text: 'Hello',
