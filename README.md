@@ -171,6 +171,8 @@ sender.send({
 
 This tests the local sender directly. Registration and recovery email delivery will be connected in later implementation steps.
 
+For deployed environments, configure `EMAIL_TRANSPORT=ses`, `FROM_EMAIL` as a verified SES sender, and `AWS_REGION` as the region containing that identity. On ECS/Fargate, grant the task role permission to send through SES; the AWS SDK obtains credentials from its standard provider chain. New SES accounts are sandboxed per region and require production access to send to unverified recipients. A successful SES API call means SES accepted the request; it does not confirm inbox delivery.
+
 ## API error responses
 
 Every `/api/v1` endpoint returns errors in the same JSON envelope. The HTTP status remains meaningful, while `code` lets clients choose behavior and `message` can be shown to users. Validation errors may also include a `fields` object with messages keyed by input field.
