@@ -55,6 +55,8 @@ export const configValidationSchema = Joi.object({
     then: Joi.string().valid('ses').required(),
     otherwise: Joi.string().valid('mailpit', 'ses').default('mailpit'),
   }),
+  MAILPIT_SMTP_HOST: Joi.string().hostname().default('mailpit'),
+  MAILPIT_SMTP_PORT: Joi.number().port().default(1025),
   SENDGRID_API_KEY: Joi.string().default('SG.placeholder'),
   FROM_EMAIL: Joi.string()
     .email()
