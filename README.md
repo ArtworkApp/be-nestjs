@@ -145,6 +145,32 @@ serverless deploy --stage prod
 
 ---
 
+## Local email testing
+
+The dev container runs Mailpit to capture email locally. The backend's local defaults are `EMAIL_TRANSPORT=mailpit`, `MAILPIT_SMTP_HOST=mailpit`, `MAILPIT_SMTP_PORT=1025`, and `FROM_EMAIL=dev@example.com`. Open the inbox at `http://localhost:8025`. Mailpit does not deliver these messages to real recipients.
+
+To test the Mailpit sender from the dev container after installing backend dependencies:
+
+```bash
+cd /workspace/be-nestjs
+npx ts-node -e '
+import { createTransport } from "nodemailer";
+import { ConfigService } from "@nestjs/config";
+import { MailpitEmailSender } from "./src/email/mailpit-email.sender";
+
+const transport = createTransport({ host: "mailpit", port: 1025, secure: false });
+const config = new ConfigService({ FROM_EMAIL: "dev@example.com" });
+const sender = new MailpitEmailSender(transport, config);
+sender.send({
+  to: "test@example.com", subject: "Mailpit test",
+  text: "Hello from ArtworkApp.", html: "<p>Hello from ArtworkApp.</p>",
+}).then(() => console.log("Message sent to Mailpit."))
+  .catch((error: unknown) => { console.error("Mailpit delivery failed.", error); process.exitCode = 1; });
+'
+```
+
+This tests the local sender directly. Registration and recovery email delivery will be connected in later implementation steps.
+
 ## API error responses
 
 Every `/api/v1` endpoint returns errors in the same JSON envelope. The HTTP status remains meaningful, while `code` lets clients choose behavior and `message` can be shown to users. Validation errors may also include a `fields` object with messages keyed by input field.
