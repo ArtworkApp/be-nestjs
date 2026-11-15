@@ -12,6 +12,7 @@ import { ApiExceptionFilter } from './common/errors/api-exception.filter';
 import configuration, { configValidationSchema } from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { ObjectStorageModule } from './storage/object-storage.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ObjectStorageModule } from './storage/object-storage.module';
     DatabaseModule,
     AuthModule,
     ObjectStorageModule,
+    EmailModule,
     ArtistsModule,
     ArtworksModule,
     ArtworkTypesModule,
