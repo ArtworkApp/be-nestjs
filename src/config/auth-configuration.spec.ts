@@ -8,6 +8,8 @@ describe('auth configuration', () => {
     JWT_REFRESH_SECRET: 'refresh-secret-with-at-least-32-characters',
     AUTH_COOKIE_DOMAIN: '.example.com',
     AUTH_WEB_ORIGINS: 'https://app.example.com',
+    EMAIL_TRANSPORT: 'ses',
+    FROM_EMAIL: 'accounts@example.com',
   };
 
   it('requires two different JWT secrets in production', () => {

@@ -49,9 +49,20 @@ export const configValidationSchema = Joi.object({
   STRIPE_SECRET_KEY: Joi.string().default('sk_test_placeholder'),
   STRIPE_WEBHOOK_SECRET: Joi.string().default('whsec_placeholder'),
 
-  // SendGrid Configuration
+  // Email configuration
+  EMAIL_TRANSPORT: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().valid('ses').required(),
+    otherwise: Joi.string().valid('mailpit', 'ses').default('mailpit'),
+  }),
   SENDGRID_API_KEY: Joi.string().default('SG.placeholder'),
-  FROM_EMAIL: Joi.string().email().default('dev@example.com'),
+  FROM_EMAIL: Joi.string()
+    .email()
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.required(),
+      otherwise: Joi.string().email().default('dev@example.com'),
+    }),
 
   // AWS S3 Configuration
   AWS_REGION: Joi.string().default('us-east-1'),
