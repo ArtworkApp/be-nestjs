@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { PasswordResetController } from './password-reset.controller';
-import { PasswordResetRequestService } from './password-reset-request.service';
+import { PasswordResetRequestFacade } from './password-reset-request-facade';
 import { PasswordResetConfirmService } from './password-reset-confirm.service';
 
 describe('PasswordResetController', () => {
@@ -25,7 +25,7 @@ describe('PasswordResetController', () => {
     confirmations = { confirm: jest.fn().mockResolvedValue(undefined) };
     response = { setHeader: jest.fn() };
     controller = new PasswordResetController(
-      requests as unknown as PasswordResetRequestService,
+      requests as unknown as PasswordResetRequestFacade,
       confirmations as unknown as PasswordResetConfirmService,
       config,
     );

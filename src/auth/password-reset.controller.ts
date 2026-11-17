@@ -17,12 +17,12 @@ import {
   PasswordResetRequestDto,
 } from './dto/password-reset.dto';
 import { PasswordResetConfirmService } from './password-reset-confirm.service';
-import { PasswordResetRequestService } from './password-reset-request.service';
+import { PasswordResetRequestFacade } from './password-reset-request-facade';
 
 @Controller('auth/password-reset')
 export class PasswordResetController {
   constructor(
-    private readonly requests: PasswordResetRequestService,
+    private readonly requests: PasswordResetRequestFacade,
     private readonly confirmations: PasswordResetConfirmService,
     private readonly config: ConfigService,
   ) {}
