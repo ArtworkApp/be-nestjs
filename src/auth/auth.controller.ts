@@ -73,11 +73,11 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
     assertAuthWriteRequest(request, body.client ?? 'web', this.config);
-    const user = await this.credentials.verifyCredentials(
+    const { user, sessionVersion } = await this.credentials.verifyCredentials(
       body.email,
       body.password,
     );
-    const tokens = await this.sessions.createSession(user.id);
+    const tokens = await this.sessions.createSession(user.id, sessionVersion);
     return this.presentSession({ user, tokens, client: body.client, response });
   }
 

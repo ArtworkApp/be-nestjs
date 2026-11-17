@@ -24,17 +24,18 @@ describe('session version', () => {
   } as unknown as ConfigService;
 
   it('includes the current version in new access tokens', async () => {
-    const prisma = {
-      user: { findUnique: jest.fn().mockResolvedValue({ sessionVersion: 3 }) },
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ sessionVersion: 3 }]),
       refreshToken: { create: jest.fn().mockResolvedValue({}) },
     };
+    const prisma = { $transaction: jest.fn((work) => work(tx)) };
     const jwt = new JwtService();
     const service = new SessionService(
       prisma as unknown as PrismaService,
       jwt,
       config,
     );
-    const tokens = await service.createSession(userId);
+    const tokens = await service.createSession(userId, 3);
     expect(jwt.decode(tokens.accessToken)).toMatchObject({ sessionVersion: 3 });
   });
 

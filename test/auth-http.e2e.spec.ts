@@ -38,7 +38,7 @@ describeWithHttp('auth HTTP contract (e2e)', () => {
   const tokens = { accessToken, refreshToken: 'refresh.jwt' };
   const credentials = {
     register: jest.fn().mockResolvedValue(user),
-    verifyCredentials: jest.fn().mockResolvedValue(user),
+    verifyCredentials: jest.fn().mockResolvedValue({ user, sessionVersion: 0 }),
   };
   const sessions = {
     createSession: jest.fn().mockResolvedValue(tokens),

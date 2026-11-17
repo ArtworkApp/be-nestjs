@@ -10,6 +10,11 @@ export interface UserProfile {
   avatarUrl: string | null;
 }
 
+export interface VerifiedCredentials {
+  user: UserProfile;
+  sessionVersion: number;
+}
+
 const DUMMY_PASSWORD_HASH =
   '$2b$12$GG2CciorV3GKG7IlweYffOn2zCV9WGmLiInVlnqZxZVtZLglg77hS';
 
@@ -53,7 +58,7 @@ export class CredentialsService {
   async verifyCredentials(
     email: string,
     password: string,
-  ): Promise<UserProfile> {
+  ): Promise<VerifiedCredentials> {
     const normalizedEmail = normalizeEmail(email);
     const user = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -63,6 +68,7 @@ export class CredentialsService {
         displayName: true,
         avatarUrl: true,
         passwordHash: true,
+        sessionVersion: true,
       },
     });
     const passwordMatches = await bcrypt.compare(
@@ -78,10 +84,13 @@ export class CredentialsService {
     }
 
     return {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      },
+      sessionVersion: user.sessionVersion,
     };
   }
 

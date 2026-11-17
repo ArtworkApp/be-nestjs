@@ -21,6 +21,7 @@ describe('CredentialsService login', () => {
       displayName: 'Person',
       avatarUrl: null,
       passwordHash,
+      sessionVersion: 0,
     });
 
     const profile = await service.verifyCredentials(
@@ -36,13 +37,17 @@ describe('CredentialsService login', () => {
         displayName: true,
         avatarUrl: true,
         passwordHash: true,
+        sessionVersion: true,
       },
     });
     expect(profile).toEqual({
-      id: '8d15334b-61d2-4aca-99b8-d633523d098b',
-      email: 'person@example.com',
-      displayName: 'Person',
-      avatarUrl: null,
+      user: {
+        id: '8d15334b-61d2-4aca-99b8-d633523d098b',
+        email: 'person@example.com',
+        displayName: 'Person',
+        avatarUrl: null,
+      },
+      sessionVersion: 0,
     });
   });
 

@@ -40,18 +40,28 @@ export class SessionService {
     private readonly config: ConfigService,
   ) {}
 
-  async createSession(userId: string): Promise<SessionTokens> {
-    const issued = await this.issueTokens(userId);
-    await this.prisma.refreshToken.create({
-      data: {
-        id: issued.refreshId,
-        userId,
-        familyId: randomUUID(),
-        tokenHash: this.hashToken(issued.tokens.refreshToken),
-        expiresAt: issued.expiresAt,
-      },
+  async createSession(
+    userId: string,
+    expectedVersion = 0,
+  ): Promise<SessionTokens> {
+    return this.prisma.$transaction(async (transaction) => {
+      const users = await transaction.$queryRaw<{ sessionVersion: number }[]>`
+        SELECT session_version AS "sessionVersion" FROM users WHERE id = ${userId}::uuid FOR UPDATE
+      `;
+      if (!users[0] || users[0].sessionVersion !== expectedVersion)
+        throw sessionExpired();
+      const issued = await this.issueTokens(userId, expectedVersion);
+      await transaction.refreshToken.create({
+        data: {
+          id: issued.refreshId,
+          userId,
+          familyId: randomUUID(),
+          tokenHash: this.hashToken(issued.tokens.refreshToken),
+          expiresAt: issued.expiresAt,
+        },
+      });
+      return issued.tokens;
     });
-    return issued.tokens;
   }
 
   async refreshSession(refreshToken: string): Promise<RefreshedSession> {
@@ -146,11 +156,17 @@ export class SessionService {
     return row;
   }
 
-  private async issueTokens(userId: string): Promise<IssuedTokens> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { sessionVersion: true },
-    });
+  private async issueTokens(
+    userId: string,
+    version?: number,
+  ): Promise<IssuedTokens> {
+    const user =
+      version === undefined
+        ? await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { sessionVersion: true },
+          })
+        : { sessionVersion: version };
     if (!user) throw sessionExpired();
     const accessSecret = this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
