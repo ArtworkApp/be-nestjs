@@ -1,7 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { ApiException } from '../common/errors/api.exception';
 import { PrismaService } from '../database/prisma.service';
+import { WelcomeEmailService } from './welcome-email.service';
 
 export interface UserProfile {
   id: string;
@@ -24,7 +25,10 @@ export function normalizeEmail(email: string): string {
 
 @Injectable()
 export class CredentialsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly welcome?: WelcomeEmailService,
+  ) {}
 
   async register(email: string, password: string): Promise<UserProfile> {
     const normalizedEmail = normalizeEmail(email);
@@ -38,7 +42,7 @@ export class CredentialsService {
 
     const passwordHash = await bcrypt.hash(password, 12);
     try {
-      return await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: { email: normalizedEmail, passwordHash },
         select: {
           id: true,
@@ -47,6 +51,8 @@ export class CredentialsService {
           avatarUrl: true,
         },
       });
+      await this.welcome?.queue(user);
+      return user;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw this.duplicateEmailError();

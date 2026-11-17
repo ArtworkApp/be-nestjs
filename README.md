@@ -169,9 +169,11 @@ sender.send({
 '
 ```
 
-This tests the local sender directly. Registration and recovery email delivery will be connected in later implementation steps.
+This tests the local sender directly. Registration and password recovery now enqueue email jobs; the worker must also be enabled to deliver them.
 
-The durable email worker is disabled by default. To enable it inside the local API, set `EMAIL_WORKER_MODE=local`, `EMAIL_PAYLOAD_KEY` to a base64-encoded 32-byte secret, and `EMAIL_PAYLOAD_KEY_ID` to an identifier for that key. Keep the key stable and private; queued messages require the same key to be read. Generate a local key with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and place it in your untracked local environment file.
+The API requires `EMAIL_PAYLOAD_KEY`, a base64-encoded 32-byte secret, and `EMAIL_PAYLOAD_KEY_ID`, an identifier for that key. Keep the key stable and private; queued messages require the same key to be read. Generate a local key with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and place it in your untracked local environment file. The worker is disabled by default; set `EMAIL_WORKER_MODE=local` to enable it inside the local API.
+
+Set `PASSWORD_RESET_WEB_ORIGIN` to the trusted web application origin. It defaults to `http://localhost:3000` for development; production requires an explicit HTTPS origin. `PASSWORD_RESET_TTL_SECONDS` defaults to 900 seconds and may be at most 86400 seconds.
 
 For a separate deployed worker, set `EMAIL_WORKER_MODE=standalone` and run `npm run start:email-worker` after building. With this mode the API does not start a worker. Supply the same key and key ID to the processes that enqueue and process jobs, using your deployment's secret manager. This implementation supports one active key; retain it until its queued jobs are finished before changing it. Production rejects local worker mode. Worker settings are `EMAIL_WORKER_POLL_INTERVAL_MS` (5000), `EMAIL_WORKER_BATCH_SIZE` (10), `EMAIL_WORKER_CONCURRENCY` (2), `EMAIL_WORKER_LEASE_DURATION_MS` (120000), `EMAIL_WORKER_MAX_ATTEMPTS` (5), and `EMAIL_WORKER_RETRY_DELAY_MS` (60000). Values in parentheses are defaults.
 
