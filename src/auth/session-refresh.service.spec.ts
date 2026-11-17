@@ -55,6 +55,7 @@ describe('SessionService refresh rotation', () => {
       }),
     );
     const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ sessionVersion: 0 }) },
       refreshToken: { findUnique, updateMany: revokeFamily },
       $transaction: transaction,
     };

@@ -48,7 +48,9 @@ describe('AuthController register and login', () => {
   function setup(nodeEnv: string, cookieDomain?: string): void {
     credentials = {
       register: jest.fn().mockResolvedValue(user),
-      verifyCredentials: jest.fn().mockResolvedValue(user),
+      verifyCredentials: jest
+        .fn()
+        .mockResolvedValue({ user, sessionVersion: 0 }),
     };
     sessions = {
       createSession: jest.fn().mockResolvedValue(tokens),
@@ -141,7 +143,7 @@ describe('AuthController register and login', () => {
       'person@example.com',
       'long-example-password',
     );
-    expect(sessions.createSession).toHaveBeenCalledWith(user.id);
+    expect(sessions.createSession).toHaveBeenCalledWith(user.id, 0);
     expect(result).toEqual({ user, ...tokens });
     expect(response.cookie).not.toHaveBeenCalled();
     expect(response.setHeader).toHaveBeenCalledWith(

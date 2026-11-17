@@ -35,7 +35,7 @@ describeWithDatabase('authentication sessions on PostgreSQL', () => {
   afterAll(async () => {
     if (prisma) {
       await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-      await prisma.$disconnect();
+      await prisma.onModuleDestroy();
     }
     if (previousDatabaseUrl === undefined) {
       delete process.env.DATABASE_URL;

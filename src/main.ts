@@ -12,6 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new CustomLoggerService(),
   });
+  app.enableShutdownHooks();
 
   const configService = app.get(ConfigService);
   const port = configService.get('app.port');

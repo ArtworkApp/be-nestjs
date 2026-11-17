@@ -2,6 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../database/prisma.service';
 import { CredentialsService } from './credentials.service';
+import { WelcomeEmailService } from './welcome-email.service';
 
 describe('CredentialsService registration', () => {
   let service: CredentialsService;
@@ -39,6 +40,7 @@ describe('CredentialsService registration', () => {
       data: {
         email: 'person@example.com',
         passwordHash: expect.any(String),
+        welcomeEmailPending: true,
       },
       select: {
         id: true,
@@ -69,6 +71,25 @@ describe('CredentialsService registration', () => {
       },
     });
     expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('queues a welcome email after creating the account', async () => {
+    const profile = {
+      id: 'user-id',
+      email: 'person@example.com',
+      displayName: null,
+      avatarUrl: null,
+    };
+    prisma.user.create.mockResolvedValue(profile);
+    const welcome = { queue: jest.fn().mockResolvedValue(undefined) };
+    service = new CredentialsService(
+      prisma as unknown as PrismaService,
+      welcome as unknown as WelcomeEmailService,
+    );
+    await expect(
+      service.register(profile.email, 'long-example-password'),
+    ).resolves.toEqual(profile);
+    expect(welcome.queue).toHaveBeenCalledWith(profile);
   });
 
   it('translates a concurrent unique-index failure to the same error', async () => {

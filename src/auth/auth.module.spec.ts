@@ -17,6 +17,12 @@ describe('AuthModule', () => {
       .useValue({})
       .overrideProvider(ConfigService)
       .useValue({
+        get: (key: string) =>
+          ({
+            EMAIL_PAYLOAD_KEY: Buffer.alloc(32, 1).toString('base64'),
+            EMAIL_PAYLOAD_KEY_ID: 'test-key',
+            NODE_ENV: 'development',
+          }[key]),
         getOrThrow: (key: string) =>
           ({
             JWT_ACCESS_SECRET: 'access-secret-with-at-least-32-characters',
