@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import { PrismaService } from '../src/database/prisma.service';
 import { EmailJobClaimService } from '../src/email/email-job-claim.service';
 import { EmailJobOutcomeService } from '../src/email/email-job-outcome.service';
+import { EmailJobLoaderService } from '../src/email/email-job-loader.service';
 
 const databaseUrl = process.env.AUTH_SCHEMA_TEST_DATABASE_URL;
 const describeWithDatabase = databaseUrl ? describe : describe.skip;
@@ -96,5 +97,29 @@ describeWithDatabase('email job claims on PostgreSQL', () => {
       encrypted_payload: null,
       payload_key_id: null,
     });
+  });
+
+  it('stops loading a reset job once its token is used', async () => {
+    const tokenId = randomUUID();
+    const jobId = randomUUID();
+    await pool.query(
+      "INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour')",
+      [tokenId, userId, tokenId],
+    );
+    await pool.query(
+      "INSERT INTO email_jobs (id, user_id, reset_token_id, kind, idempotency_key, expires_at, updated_at) VALUES ($1, $2, $3, 'PASSWORD_RESET', $4, NOW() + INTERVAL '1 hour', NOW())",
+      [jobId, userId, tokenId, jobId],
+    );
+    const [claim] = await new EmailJobClaimService(
+      prisma as PrismaService,
+    ).claim({ batchSize: 1, leaseDurationMs: 30000 });
+    const loader = new EmailJobLoaderService(prisma as PrismaService);
+    expect(claim.id).toBe(jobId);
+    expect((await loader.load(claim))?.id).toBe(jobId);
+    await pool.query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1',
+      [tokenId],
+    );
+    expect(await loader.load(claim)).toBeNull();
   });
 });
