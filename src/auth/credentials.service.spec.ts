@@ -40,6 +40,7 @@ describe('CredentialsService registration', () => {
       data: {
         email: 'person@example.com',
         passwordHash: expect.any(String),
+        welcomeEmailPending: true,
       },
       select: {
         id: true,

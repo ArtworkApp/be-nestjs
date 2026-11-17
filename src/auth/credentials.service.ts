@@ -43,7 +43,11 @@ export class CredentialsService {
     const passwordHash = await bcrypt.hash(password, 12);
     try {
       const user = await this.prisma.user.create({
-        data: { email: normalizedEmail, passwordHash },
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          welcomeEmailPending: true,
+        },
         select: {
           id: true,
           email: true,

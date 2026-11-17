@@ -30,7 +30,7 @@ describeWithHttp('password recovery HTTP contract', () => {
       providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
     })
       .overrideProvider(PrismaService)
-      .useValue({})
+      .useValue({ $queryRaw: jest.fn().mockResolvedValue([{ count: 1 }]) })
       .overrideProvider(ConfigService)
       .useValue({
         get: (key: string) => values[key],

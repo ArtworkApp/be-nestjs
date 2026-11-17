@@ -4,7 +4,7 @@ import { DatabaseModule } from '../database/database.module';
 import { PrismaService } from '../database/prisma.service';
 import { EmailJobService } from '../email/email-job.service';
 import { EmailJobsModule } from '../email/email-jobs.module';
-import { AuthRateLimitGuard } from './auth-rate-limit.guard';
+import { RecoveryRateLimitGuard } from './recovery-rate-limit.guard';
 import { readPasswordResetConfig } from './password-reset-config';
 import { PasswordResetConfirmService } from './password-reset-confirm.service';
 import { PasswordResetController } from './password-reset.controller';
@@ -16,7 +16,7 @@ import { PasswordResetTokenService } from './password-reset-token.service';
   imports: [ConfigModule, DatabaseModule, EmailJobsModule],
   controllers: [PasswordResetController],
   providers: [
-    AuthRateLimitGuard,
+    RecoveryRateLimitGuard,
     {
       provide: PasswordResetTokenService,
       inject: [ConfigService],

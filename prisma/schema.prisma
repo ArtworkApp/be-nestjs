@@ -41,6 +41,7 @@ model User {
   displayName    String?  @map("display_name")
   avatarUrl      String?  @map("avatar_url")
   sessionVersion Int      @default(0) @map("session_version")
+  welcomeEmailPending Boolean @default(false) @map("welcome_email_pending")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -49,6 +50,15 @@ model User {
   emailJobs           EmailJob[]
 
   @@map("users")
+}
+
+model RecoveryRateLimit {
+  key       String   @id
+  count     Int
+  resetAt   DateTime @map("reset_at")
+
+  @@index([resetAt])
+  @@map("recovery_rate_limits")
 }
 
 model PasswordResetToken {

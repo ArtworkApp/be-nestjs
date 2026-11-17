@@ -5,11 +5,15 @@ import {
 } from './email-job-claim.service';
 import { EmailJobCleanupService } from './email-job-cleanup.service';
 import { EmailJobProcessorService } from './email-job-processor.service';
+import { WelcomeEmailService } from '../auth/welcome-email.service';
+import { RecoveryRateLimitMaintenance } from '../auth/recovery-rate-limit-maintenance';
 
 interface WorkerDependencies {
   claims: Pick<EmailJobClaimService, 'claim'>;
   processor: Pick<EmailJobProcessorService, 'process'>;
   cleanup: Pick<EmailJobCleanupService, 'expireJobs'>;
+  welcomes: Pick<WelcomeEmailService, 'recoverPending'>;
+  rateLimits: Pick<RecoveryRateLimitMaintenance, 'deleteExpired'>;
 }
 
 interface WorkerSettings {
@@ -66,6 +70,10 @@ export class EmailWorkerService implements OnModuleInit, OnModuleDestroy {
 
   private async runBatch(): Promise<void> {
     await this.dependencies.cleanup.expireJobs();
+    if (this.stopping) return;
+    await this.dependencies.rateLimits.deleteExpired();
+    if (this.stopping) return;
+    await this.dependencies.welcomes.recoverPending(this.settings.batchSize);
     if (this.stopping) return;
     const jobs = await this.dependencies.claims.claim({
       batchSize: this.settings.batchSize,

@@ -6,6 +6,8 @@ describe('EmailWorkerService', () => {
       claims: { claim: jest.fn().mockResolvedValue([]) },
       processor: { process: jest.fn().mockResolvedValue('sent') },
       cleanup: { expireJobs: jest.fn().mockResolvedValue(0) },
+      welcomes: { recoverPending: jest.fn().mockResolvedValue(undefined) },
+      rateLimits: { deleteExpired: jest.fn().mockResolvedValue(undefined) },
     };
   }
   const settings = {
@@ -25,6 +27,7 @@ describe('EmailWorkerService', () => {
     const worker = new EmailWorkerService(services, settings);
     await worker.runOnce();
     expect(services.cleanup.expireJobs).toHaveBeenCalledTimes(1);
+    expect(services.welcomes.recoverPending).toHaveBeenCalledWith(5);
     expect(services.claims.claim).toHaveBeenCalledWith({
       batchSize: 5,
       leaseDurationMs: 30000,
@@ -53,6 +56,8 @@ describe('EmailWorkerService', () => {
     const running = worker.runOnce();
     await Promise.resolve();
     await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(services.processor.process).toHaveBeenCalledTimes(1);
     const shutdown = worker.onModuleDestroy();
     finish();
@@ -71,6 +76,8 @@ describe('EmailWorkerService', () => {
     );
     const worker = new EmailWorkerService(services, settings);
     const first = worker.runOnce();
+    await Promise.resolve();
+    await Promise.resolve();
     await Promise.resolve();
     const second = worker.runOnce();
     expect(services.claims.claim).toHaveBeenCalledTimes(1);

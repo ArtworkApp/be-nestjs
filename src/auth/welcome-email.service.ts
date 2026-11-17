@@ -16,6 +16,11 @@ export class WelcomeEmailService {
   async queue(user: UserProfile): Promise<void> {
     try {
       await this.prisma.$transaction(async (transaction) => {
+        const pending = await transaction.user.updateMany({
+          where: { id: user.id, welcomeEmailPending: true },
+          data: { welcomeEmailPending: false },
+        });
+        if (pending.count !== 1) return;
         await this.jobs.enqueue(transaction, {
           userId: user.id,
           kind: EmailJobKind.WELCOME,
@@ -27,5 +32,15 @@ export class WelcomeEmailService {
     } catch {
       this.logger.error('Welcome email could not be queued.');
     }
+  }
+
+  async recoverPending(batchSize: number): Promise<void> {
+    const users = await this.prisma.user.findMany({
+      where: { welcomeEmailPending: true },
+      select: { id: true, email: true, displayName: true, avatarUrl: true },
+      orderBy: { createdAt: 'asc' },
+      take: batchSize,
+    });
+    for (const user of users) await this.queue(user);
   }
 }

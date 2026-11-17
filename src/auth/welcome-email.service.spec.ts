@@ -11,7 +11,9 @@ describe('WelcomeEmailService', () => {
     avatarUrl: null,
   };
   it('queues a welcome message with a stable idempotency key', async () => {
-    const tx = {};
+    const tx = {
+      user: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    };
     const prisma = {
       $transaction: jest.fn((work) => work(tx)),
     } as unknown as PrismaService;
@@ -19,6 +21,10 @@ describe('WelcomeEmailService', () => {
       enqueue: jest.fn().mockResolvedValue({}),
     } as unknown as EmailJobService;
     await new WelcomeEmailService(prisma, jobs).queue(user);
+    expect(tx.user.updateMany).toHaveBeenCalledWith({
+      where: { id: user.id, welcomeEmailPending: true },
+      data: { welcomeEmailPending: false },
+    });
     expect(jobs.enqueue).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
@@ -28,6 +34,22 @@ describe('WelcomeEmailService', () => {
         message: expect.objectContaining({ to: user.email }),
       }),
     );
+  });
+
+  it('recovers pending welcomes during worker polling', async () => {
+    const tx = {
+      user: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    };
+    const prisma = {
+      user: { findMany: jest.fn().mockResolvedValue([user]) },
+      $transaction: jest.fn((work) => work(tx)),
+    } as unknown as PrismaService;
+    const jobs = {
+      enqueue: jest.fn().mockResolvedValue({}),
+    } as unknown as EmailJobService;
+    const service = new WelcomeEmailService(prisma, jobs);
+    await service.recoverPending(10);
+    expect(jobs.enqueue).toHaveBeenCalledTimes(1);
   });
 
   it('does not fail registration when queueing fails', async () => {

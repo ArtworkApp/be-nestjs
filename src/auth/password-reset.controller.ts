@@ -11,7 +11,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { assertAuthWriteRequest } from './auth-request-policy';
-import { AuthRateLimit, AuthRateLimitGuard } from './auth-rate-limit.guard';
+import { AuthRateLimit } from './auth-rate-limit.guard';
+import { RecoveryRateLimitGuard } from './recovery-rate-limit.guard';
 import {
   PasswordResetConfirmDto,
   PasswordResetRequestDto,
@@ -30,7 +31,7 @@ export class PasswordResetController {
   @Post('request')
   @HttpCode(HttpStatus.ACCEPTED)
   @AuthRateLimit(5, 60000)
-  @UseGuards(AuthRateLimitGuard)
+  @UseGuards(RecoveryRateLimitGuard)
   async requestReset(
     @Req() request: Request,
     @Body() body: PasswordResetRequestDto,
@@ -48,7 +49,7 @@ export class PasswordResetController {
   @Post('confirm')
   @HttpCode(HttpStatus.NO_CONTENT)
   @AuthRateLimit(10, 60000)
-  @UseGuards(AuthRateLimitGuard)
+  @UseGuards(RecoveryRateLimitGuard)
   async confirmReset(
     @Req() request: Request,
     @Body() body: PasswordResetConfirmDto,

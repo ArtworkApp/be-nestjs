@@ -3,6 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
 import { DatabaseModule } from '../database/database.module';
 import { PrismaService } from '../database/prisma.service';
+import { RecoveryRateLimitMaintenance } from '../auth/recovery-rate-limit-maintenance';
+import { WelcomeEmailService } from '../auth/welcome-email.service';
+import { EmailJobService } from './email-job.service';
 import { EmailJobClaimService } from './email-job-claim.service';
 import { EmailJobCleanupService } from './email-job-cleanup.service';
 import { EmailJobLoaderService } from './email-job-loader.service';
@@ -33,7 +36,16 @@ function createWorker(
     settings,
   );
   return new EmailWorkerService(
-    { claims: new EmailJobClaimService(prisma), processor, cleanup },
+    {
+      claims: new EmailJobClaimService(prisma),
+      processor,
+      cleanup,
+      welcomes: new WelcomeEmailService(
+        prisma,
+        modules.get(EmailJobService, { strict: false }),
+      ),
+      rateLimits: new RecoveryRateLimitMaintenance(prisma),
+    },
     {
       pollIntervalMs: settings.pollIntervalMs,
       batchSize: settings.batchSize,
