@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { EmailJobProcessorService } from './email-job-processor.service';
 
 describe('EmailJobProcessorService', () => {
@@ -57,6 +58,16 @@ describe('EmailJobProcessorService', () => {
       claim,
       new Date('2030-01-01T00:01:00Z'),
     );
+  });
+
+  it('logs which processing stage failed without logging error details', async () => {
+    const log = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    dependencies.reader.read.mockImplementation(() => {
+      throw new Error('secret-token');
+    });
+    await processor.process(claim);
+    expect(log).toHaveBeenCalledWith('Email job payload could not be read.');
+    log.mockRestore();
   });
 
   it('marks the last failed attempt as failed rather than retrying', async () => {

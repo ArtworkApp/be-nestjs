@@ -3,7 +3,8 @@ import { EmailJobLoaderService } from './email-job-loader.service';
 import { EmailJobReaderService } from './email-job-reader.service';
 import { EmailJobOutcomeService } from './email-job-outcome.service';
 import { EmailJobCleanupService } from './email-job-cleanup.service';
-import { EmailSender } from './email-sender';
+import { Logger } from '@nestjs/common';
+import { EmailMessage, EmailSender } from './email-sender';
 
 interface ProcessorDependencies {
   loader: Pick<EmailJobLoaderService, 'load'>;
@@ -27,6 +28,7 @@ type ProcessResult =
   | 'not_scheduled';
 
 export class EmailJobProcessorService {
+  private readonly logger = new Logger(EmailJobProcessorService.name);
   constructor(
     private readonly dependencies: ProcessorDependencies,
     private readonly settings: ProcessorSettings,
@@ -53,10 +55,17 @@ export class EmailJobProcessorService {
         : 'lease_lost';
     }
 
+    let message: EmailMessage;
     try {
-      const message = this.dependencies.reader.read(job);
+      message = this.dependencies.reader.read(job);
+    } catch {
+      this.logger.error('Email job payload could not be read.');
+      return this.handleFailure(claim);
+    }
+    try {
       await this.dependencies.sender.send(message);
     } catch {
+      this.logger.error('Email job delivery failed.');
       return this.handleFailure(claim);
     }
     return (await this.dependencies.outcomes.markSent(claim))
