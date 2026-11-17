@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailJobService } from './email-job.service';
+import { EmailJobReaderService } from './email-job-reader.service';
 import { EmailPayloadProtector } from './email-payload-protector';
 
 function readEncryptionKey(config: ConfigService): Buffer {
@@ -36,7 +37,13 @@ function readKeyId(config: ConfigService): string {
       useFactory: (protector: EmailPayloadProtector, config: ConfigService) =>
         new EmailJobService(protector, readKeyId(config)),
     },
+    {
+      provide: EmailJobReaderService,
+      inject: [EmailPayloadProtector, ConfigService],
+      useFactory: (protector: EmailPayloadProtector, config: ConfigService) =>
+        new EmailJobReaderService(protector, readKeyId(config)),
+    },
   ],
-  exports: [EmailJobService, EmailPayloadProtector],
+  exports: [EmailJobService, EmailJobReaderService, EmailPayloadProtector],
 })
 export class EmailJobsModule {}
