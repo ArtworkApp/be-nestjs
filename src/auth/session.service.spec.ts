@@ -18,7 +18,10 @@ describe('SessionService initial issuance', () => {
   beforeEach(() => {
     jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
     createTokenRow = jest.fn().mockResolvedValue({});
-    const prisma = { refreshToken: { create: createTokenRow } };
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ sessionVersion: 0 }) },
+      refreshToken: { create: createTokenRow },
+    };
     const values: Record<string, string | number> = {
       JWT_ACCESS_SECRET: accessSecret,
       JWT_REFRESH_SECRET: refreshSecret,

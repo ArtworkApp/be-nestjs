@@ -13,6 +13,7 @@ interface AccessClaims {
   sub: string;
   purpose: string;
   jti: string;
+  sessionVersion?: number;
 }
 
 export function extractAccessToken(request: Request): string | null {
@@ -40,7 +41,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (
       payload.purpose !== 'access' ||
       !isUUID(payload.sub) ||
-      !isUUID(payload.jti)
+      !isUUID(payload.jti) ||
+      (payload.sessionVersion !== undefined &&
+        (!Number.isSafeInteger(payload.sessionVersion) ||
+          payload.sessionVersion < 0))
     ) {
       throw this.unauthenticated();
     }
@@ -52,12 +56,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         email: true,
         displayName: true,
         avatarUrl: true,
+        sessionVersion: true,
       },
     });
-    if (!user) {
+    if (!user || user.sessionVersion !== (payload.sessionVersion ?? 0)) {
       throw this.unauthenticated();
     }
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    };
   }
 
   private unauthenticated(): ApiException {

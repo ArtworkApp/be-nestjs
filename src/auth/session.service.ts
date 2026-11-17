@@ -147,6 +147,11 @@ export class SessionService {
   }
 
   private async issueTokens(userId: string): Promise<IssuedTokens> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { sessionVersion: true },
+    });
+    if (!user) throw sessionExpired();
     const accessSecret = this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
     const issuer = this.config.getOrThrow<string>('JWT_ISSUER');
@@ -159,7 +164,12 @@ export class SessionService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(
-        { sub: userId, purpose: 'access', jti: randomUUID() },
+        {
+          sub: userId,
+          purpose: 'access',
+          jti: randomUUID(),
+          sessionVersion: user.sessionVersion,
+        },
         { secret: accessSecret, issuer, audience, expiresIn: accessTtl },
       ),
       this.jwt.signAsync(

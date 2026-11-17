@@ -57,7 +57,7 @@ describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
 
   beforeEach(() => {
-    findUnique = jest.fn().mockResolvedValue(profile);
+    findUnique = jest.fn().mockResolvedValue({ ...profile, sessionVersion: 0 });
     const prisma = { user: { findUnique } };
     const values: Record<string, string> = {
       JWT_ACCESS_SECRET: 'access-secret-with-at-least-32-characters',
@@ -85,6 +85,7 @@ describe('JwtStrategy', () => {
         email: true,
         displayName: true,
         avatarUrl: true,
+        sessionVersion: true,
       },
     });
     expect(result).toEqual(profile);
