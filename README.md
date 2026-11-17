@@ -171,6 +171,10 @@ sender.send({
 
 This tests the local sender directly. Registration and recovery email delivery will be connected in later implementation steps.
 
+The durable email worker is disabled by default. To enable it inside the local API, set `EMAIL_WORKER_MODE=local`, `EMAIL_PAYLOAD_KEY` to a base64-encoded 32-byte secret, and `EMAIL_PAYLOAD_KEY_ID` to an identifier for that key. Keep the key stable and private; queued messages require the same key to be read. Generate a local key with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and place it in your untracked local environment file.
+
+For a separate deployed worker, set `EMAIL_WORKER_MODE=standalone` and run `npm run start:email-worker` after building. With this mode the API does not start a worker. Supply the same key and key ID to the processes that enqueue and process jobs, using your deployment's secret manager. This implementation supports one active key; retain it until its queued jobs are finished before changing it. Production rejects local worker mode. Worker settings are `EMAIL_WORKER_POLL_INTERVAL_MS` (5000), `EMAIL_WORKER_BATCH_SIZE` (10), `EMAIL_WORKER_CONCURRENCY` (2), `EMAIL_WORKER_LEASE_DURATION_MS` (120000), `EMAIL_WORKER_MAX_ATTEMPTS` (5), and `EMAIL_WORKER_RETRY_DELAY_MS` (60000). Values in parentheses are defaults.
+
 For deployed environments, configure `EMAIL_TRANSPORT=ses`, `FROM_EMAIL` as a verified SES sender, and `AWS_REGION` as the region containing that identity. On ECS/Fargate, grant the task role permission to send through SES; the AWS SDK obtains credentials from its standard provider chain. New SES accounts are sandboxed per region and require production access to send to unverified recipients. A successful SES API call means SES accepted the request; it does not confirm inbox delivery.
 
 ## API error responses
