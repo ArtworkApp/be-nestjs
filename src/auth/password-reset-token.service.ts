@@ -7,7 +7,7 @@ export interface PasswordResetToken {
   resetUrl: string;
 }
 
-function validateOrigin(origin: string): string {
+export function validatePasswordResetOrigin(origin: string): string {
   try {
     const url = new URL(origin);
     const localHttp =
@@ -28,18 +28,22 @@ function validateOrigin(origin: string): string {
   throw new Error('Invalid password reset origin.');
 }
 
+export function validatePasswordResetLifetime(lifetimeSeconds: number): void {
+  if (
+    !Number.isSafeInteger(lifetimeSeconds) ||
+    lifetimeSeconds < 1 ||
+    lifetimeSeconds > 86400
+  ) {
+    throw new Error('Invalid password reset lifetime.');
+  }
+}
+
 export class PasswordResetTokenService {
   private readonly origin: string;
 
   constructor(origin: string, private readonly lifetimeSeconds: number) {
-    this.origin = validateOrigin(origin);
-    if (
-      !Number.isSafeInteger(lifetimeSeconds) ||
-      lifetimeSeconds < 1 ||
-      lifetimeSeconds > 86400
-    ) {
-      throw new Error('Invalid password reset lifetime.');
-    }
+    this.origin = validatePasswordResetOrigin(origin);
+    validatePasswordResetLifetime(lifetimeSeconds);
   }
 
   create(now: Date): PasswordResetToken {
