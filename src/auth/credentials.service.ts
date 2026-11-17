@@ -13,7 +13,7 @@ export interface UserProfile {
 const DUMMY_PASSWORD_HASH =
   '$2b$12$GG2CciorV3GKG7IlweYffOn2zCV9WGmLiInVlnqZxZVtZLglg77hS';
 
-function normalizeEmail(email: string): string {
+export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
