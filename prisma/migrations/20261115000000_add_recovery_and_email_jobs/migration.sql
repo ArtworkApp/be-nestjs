@@ -1,4 +1,5 @@
 -- Additive account-recovery and durable email-job schema.
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TYPE "EmailJobKind" AS ENUM ('WELCOME', 'PASSWORD_RESET', 'PASSWORD_CHANGED');
 CREATE TYPE "EmailJobStatus" AS ENUM ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'EXPIRED');
 
