@@ -1,7 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { ApiException } from '../common/errors/api.exception';
 import { PrismaService } from '../database/prisma.service';
+import { WelcomeEmailService } from './welcome-email.service';
 
 export interface UserProfile {
   id: string;
@@ -10,16 +11,24 @@ export interface UserProfile {
   avatarUrl: string | null;
 }
 
+export interface VerifiedCredentials {
+  user: UserProfile;
+  sessionVersion: number;
+}
+
 const DUMMY_PASSWORD_HASH =
   '$2b$12$GG2CciorV3GKG7IlweYffOn2zCV9WGmLiInVlnqZxZVtZLglg77hS';
 
-function normalizeEmail(email: string): string {
+export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 @Injectable()
 export class CredentialsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly welcome?: WelcomeEmailService,
+  ) {}
 
   async register(email: string, password: string): Promise<UserProfile> {
     const normalizedEmail = normalizeEmail(email);
@@ -33,8 +42,12 @@ export class CredentialsService {
 
     const passwordHash = await bcrypt.hash(password, 12);
     try {
-      return await this.prisma.user.create({
-        data: { email: normalizedEmail, passwordHash },
+      const user = await this.prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          welcomeEmailPending: true,
+        },
         select: {
           id: true,
           email: true,
@@ -42,6 +55,8 @@ export class CredentialsService {
           avatarUrl: true,
         },
       });
+      await this.welcome?.queue(user);
+      return user;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw this.duplicateEmailError();
@@ -53,7 +68,7 @@ export class CredentialsService {
   async verifyCredentials(
     email: string,
     password: string,
-  ): Promise<UserProfile> {
+  ): Promise<VerifiedCredentials> {
     const normalizedEmail = normalizeEmail(email);
     const user = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -63,6 +78,7 @@ export class CredentialsService {
         displayName: true,
         avatarUrl: true,
         passwordHash: true,
+        sessionVersion: true,
       },
     });
     const passwordMatches = await bcrypt.compare(
@@ -78,10 +94,13 @@ export class CredentialsService {
     }
 
     return {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      },
+      sessionVersion: user.sessionVersion,
     };
   }
 

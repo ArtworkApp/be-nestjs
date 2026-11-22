@@ -38,7 +38,7 @@ describeWithHttp('auth HTTP contract (e2e)', () => {
   const tokens = { accessToken, refreshToken: 'refresh.jwt' };
   const credentials = {
     register: jest.fn().mockResolvedValue(user),
-    verifyCredentials: jest.fn().mockResolvedValue(user),
+    verifyCredentials: jest.fn().mockResolvedValue({ user, sessionVersion: 0 }),
   };
   const sessions = {
     createSession: jest.fn().mockResolvedValue(tokens),
@@ -53,6 +53,8 @@ describeWithHttp('auth HTTP contract (e2e)', () => {
     JWT_AUDIENCE: 'artworkapp-clients',
     JWT_ACCESS_TTL_SECONDS: 900,
     JWT_REFRESH_TTL_SECONDS: 2592000,
+    EMAIL_PAYLOAD_KEY: Buffer.alloc(32, 1).toString('base64'),
+    EMAIL_PAYLOAD_KEY_ID: 'test-key',
   };
   let app: NestExpressApplication;
 
@@ -62,7 +64,13 @@ describeWithHttp('auth HTTP contract (e2e)', () => {
       providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
     })
       .overrideProvider(PrismaService)
-      .useValue({ user: { findUnique: jest.fn().mockResolvedValue(user) } })
+      .useValue({
+        user: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValue({ ...user, sessionVersion: 0 }),
+        },
+      })
       .overrideProvider(ConfigService)
       .useValue({
         get: (key: string) => values[key],

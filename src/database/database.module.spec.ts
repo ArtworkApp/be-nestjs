@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DatabaseModule } from './database.module';
 import { PrismaService } from './prisma.service';
 
-jest.mock('pg', () => ({ Pool: jest.fn().mockReturnValue({}) }));
+jest.mock('pg', () => ({
+  Pool: jest
+    .fn()
+    .mockReturnValue({ end: jest.fn().mockResolvedValue(undefined) }),
+}));
 jest.mock('@prisma/adapter-pg', () => ({
   PrismaPg: jest.fn().mockReturnValue({}),
 }));

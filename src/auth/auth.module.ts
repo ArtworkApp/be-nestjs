@@ -9,6 +9,11 @@ import { SessionService } from './session.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthRateLimitGuard } from './auth-rate-limit.guard';
+import { PasswordRecoveryModule } from './password-recovery.module';
+import { EmailJobsModule } from '../email/email-jobs.module';
+import { EmailJobService } from '../email/email-job.service';
+import { PrismaService } from '../database/prisma.service';
+import { WelcomeEmailService } from './welcome-email.service';
 
 @Module({
   imports: [
@@ -16,6 +21,8 @@ import { AuthRateLimitGuard } from './auth-rate-limit.guard';
     DatabaseModule,
     JwtModule.register({}),
     PassportModule,
+    EmailJobsModule,
+    PasswordRecoveryModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -24,6 +31,12 @@ import { AuthRateLimitGuard } from './auth-rate-limit.guard';
     JwtStrategy,
     JwtAuthGuard,
     AuthRateLimitGuard,
+    {
+      provide: WelcomeEmailService,
+      inject: [PrismaService, EmailJobService],
+      useFactory: (prisma: PrismaService, jobs: EmailJobService) =>
+        new WelcomeEmailService(prisma, jobs),
+    },
   ],
   exports: [JwtAuthGuard],
 })

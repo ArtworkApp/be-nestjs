@@ -12,6 +12,11 @@ import { ApiExceptionFilter } from './common/errors/api-exception.filter';
 import configuration, { configValidationSchema } from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { ObjectStorageModule } from './storage/object-storage.module';
+import { EmailModule } from './email/email.module';
+import { EmailWorkerLauncher } from './email/email-worker-launcher';
+import { EmailWorkerRootModule } from './email/email-worker-root.module';
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -28,6 +33,7 @@ import { ObjectStorageModule } from './storage/object-storage.module';
     DatabaseModule,
     AuthModule,
     ObjectStorageModule,
+    EmailModule,
     ArtistsModule,
     ArtworksModule,
     ArtworkTypesModule,
@@ -36,6 +42,14 @@ import { ObjectStorageModule } from './storage/object-storage.module';
   controllers: [AppController],
   providers: [
     CustomLoggerService,
+    {
+      provide: EmailWorkerLauncher,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        new EmailWorkerLauncher(config, () =>
+          NestFactory.createApplicationContext(EmailWorkerRootModule),
+        ),
+    },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
   ],
 })
