@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
+import { isIP } from 'net';
 
 export interface PasswordResetToken {
   token: string;
@@ -7,12 +8,21 @@ export interface PasswordResetToken {
   resetUrl: string;
 }
 
+function isLocalHost(hostname: string): boolean {
+  if (['localhost', '127.0.0.1', '[::1]'].includes(hostname)) return true;
+  if (isIP(hostname) !== 4) return false;
+  const [first, second] = hostname.split('.').map(Number);
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
 export function validatePasswordResetOrigin(origin: string): string {
   try {
     const url = new URL(origin);
-    const localHttp =
-      url.protocol === 'http:' &&
-      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    const localHttp = url.protocol === 'http:' && isLocalHost(url.hostname);
     if (
       (url.protocol === 'https:' || localHttp) &&
       !url.username &&

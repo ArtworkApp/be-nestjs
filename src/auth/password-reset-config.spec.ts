@@ -40,6 +40,35 @@ describe('password reset configuration', () => {
     });
   });
 
+  it.each([
+    'http://10.1.2.3:3000',
+    'http://172.30.1.49:3000',
+    'http://192.168.1.2:3000',
+  ])('allows a private network origin during development: %s', (origin) => {
+    expect(
+      readPasswordResetConfig(
+        config({ NODE_ENV: 'development', PASSWORD_RESET_WEB_ORIGIN: origin }),
+      ).origin,
+    ).toBe(origin);
+    expect(() =>
+      readPasswordResetConfig(
+        config({ NODE_ENV: 'production', PASSWORD_RESET_WEB_ORIGIN: origin }),
+      ),
+    ).toThrow();
+  });
+
+  it.each([
+    'http://172.32.0.1:3000',
+    'http://8.8.8.8:3000',
+    'http://example.com',
+  ])('rejects a public HTTP origin: %s', (origin) => {
+    expect(() =>
+      readPasswordResetConfig(
+        config({ NODE_ENV: 'development', PASSWORD_RESET_WEB_ORIGIN: origin }),
+      ),
+    ).toThrow();
+  });
+
   it.each(['0', '-1', '1.5', '86401', 'not-a-number'])(
     'rejects invalid token lifetimes',
     (value) => {
